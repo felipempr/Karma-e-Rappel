@@ -51,6 +51,7 @@ int main(void)
 			P[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
+//Variáveis das outras fases
 	/*float ***PL;
 	PL=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
