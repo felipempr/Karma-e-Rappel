@@ -21,11 +21,11 @@
 //PARÂMETROS DE GEOMETRIA
 #define compL 50	//comprimento do domínio era 500
 #define R 15		//raio inicial
-#define TELX 125	//total de elementos na direção x 1250
-#define TELY 125	//total de elementos na direção y 1250
+#define TELX 300	//total de elementos na direção x 1250
+#define TELY 300	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
 #define Ttot 1000	//tempo total da simulação 3750
-#define dt 0.02		//tamanho do intervalo entre os passos de tempo
+#define dt 0.005		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
 #define LIQUIDO -1	//valor da variável de fase no estado líquido

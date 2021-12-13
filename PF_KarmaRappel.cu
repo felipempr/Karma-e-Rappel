@@ -114,14 +114,14 @@ int main(void)
 	printf("d0=%f\n",(a1*E0/lambda));
 	printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
-	FILE *arq;
+	//FILE *arq;
 	FILE *arq2;
 	//FILE *arq3;
 	
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("JohnsonPS","w");
+//arq=fopen("JohnsonPS","w");
 arq2=fopen("JohnsonPSbin","wb");
 //arq=fopen("JohnsonPSbin","wb");
 //arq2=fopen("JohnsonPL","wb");
@@ -204,7 +204,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%1000==0){//%5000
+	if (tempo%4000==0){//%5000
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -223,27 +223,10 @@ cudaDeviceSynchronize();
 	{
 		for(i=0;i<TELX;i++)
 		{
-			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
-			fprintf(arq,"%d %d %f\n", i,j,contorno[j][i]);
+			fprintf(arq,"%d %d %f\n", i,j,PS[0][i][j]);
 		}
-	}*/
-	//printf(" PS[1][1]=%f PS[60][70]=%f PS[70][70]=%f\n", PS[0][1][1], PS[0][60][70], PS[0][70][70]);
-	//printf("contorno[1][1]=%f contorno[60][70]=%f contorno[70][70]=%f\n", contorno[1][1], contorno[60][70], contorno[70][70]);
-	//printf("PS[62][70]=%f PL[62][70]=%f contorno[62][70]=%f\n", PS[0][62][70], PL[0][62][70], contorno[62][70]);
-	fprintf(arq,"\n\n");
-/*fprintf(arq,"phi:t=%.8f\n",(tempo*dt));   TRECHO PARA IMPRIMIR A POSIÇÃO DA INTERFACE E CALCULAR A VELOCIDADE
-	for(int j=0;j<TELY-1;j++){
-		if (P[1][0][j]*P[1][0][j+1]<0)
-		fprintf(arq,"%d %f %d %f\n",j, P[1][0][j],j+1,P[1][0][j+1]);
-		}
-		fprintf(arq,"\n\n");
-
-		fprintf(arq3,"phi:t=%.8f\n",(tempo*dt));
-	for(int i=0;i<TELY-1;i++){
-		if (P[1][i][0]*P[1][i+1][0]<0)
-		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
-		}
-		fprintf(arq3,"\n\n");*/
+	}
+	fprintf(arq,"\n\n");*/
 
 	//IMPRESSÃO NO ARQUIVO BINÁRIO
 	for (int j = 0; j < TELY; j++) {
@@ -268,8 +251,8 @@ printf("d0=%f\n",(0.8839*E0/lambda));
 printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
-fclose(arq);
-//fclose(arq2);
+//fclose(arq);
+fclose(arq2);
 //fclose(arq3);
 for(int t=0;t<2;t++){
 	for(int i=0;i<TELX;i++){

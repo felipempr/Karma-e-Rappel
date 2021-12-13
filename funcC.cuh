@@ -66,7 +66,7 @@ else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 }
 }
 */
-extern __shared__ float cache[];
+//extern __shared__ float cache[];
 	
 /*__device__ void deltaf(float *delta, float *X)
 {
