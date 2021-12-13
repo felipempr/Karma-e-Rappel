@@ -1,7 +1,7 @@
 /********************************************************************************************************************************
 *															        																
-*		FORMA FINAL PARA SIMULAÇÃO EM DUAS DIMENSÕES DO CAMPO DE FASES COM ANISOTROPIA PARALELIZADO  		
-*																
+*		SIMULAÇÃO EM DUAS DIMENSÕES DO CAMPO DE FASES PARALELIZADO REPRODUZINDO O MODELO DE JOHNSON DESCRITO NO ARTIGO
+*																NÃO HÁ CAMPO DE TEMPERATURA
 *																
 *********************************************************************************************************************************/
 
@@ -10,7 +10,6 @@
 #include <stdlib.h>
 #include <math.h>
 #include <cuda.h>
-//#include <omp.h>
 #include "entradas.h"
 #include "funcC.cuh"
 
@@ -33,7 +32,6 @@ int main(void)
 	int tempo;
 	int numThreads = 512;
 	int numBlocks = (TELX*TELY + numThreads - 1)/numThreads; //3052
-
 	
 	//char p;
 		
@@ -42,17 +40,8 @@ int main(void)
 	float dy=(float)compL/(float)TELY;
 	//const float sigma=E/sqrt(2*W);
 	
-	
-	float ***P;
-	P=(float***)malloc(2*sizeof(float**));
-	for(int t=0;t<=1;t++){
-		P[t]=(float**)malloc(TELX*sizeof(float*));
-		for(int i=0;i<=TELX-1;i++){
-			P[t][i]=(float*)malloc(TELY*sizeof(float));
-		}
-	}
-//Variáveis das outras fases
-	/*float ***PL;
+	//VARIÁVEIS DAS FASES LÍQUIDA, SÓLIDA E IMÓVEL(?)
+	float ***PL;
 	PL=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
 		PL[t]=(float**)malloc(TELX*sizeof(float*));
@@ -75,8 +64,13 @@ int main(void)
 		for(int i=0;i<=TELX-1;i++){
 			PI[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
-	}*/	
-
+	}
+	float **contorno;
+	contorno=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			contorno[i]=(float*)malloc(TELY*sizeof(float));
+	}
+	//VARIÁVEIS REFERENTES À TEMPERATURA (SUPER-RESFRIAMENTO E TEMPERATURA PROVISÓRIA)
 	float ***u;
 	u=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
@@ -96,14 +90,13 @@ int main(void)
 		}
 	}
 	
-	float *Pc;	
-	cudaMalloc((void **) &Pc, 2*TELX*TELY*sizeof(float));
-	//float *PcL;	
-	//cudaMalloc((void **) &PcL, 2*TELX*TELY*sizeof(float));
-	//float *PcS;	
-	//cudaMalloc((void **) &PcS, 2*TELX*TELY*sizeof(float));
-	//float *PcI;	
-	//cudaMalloc((void **) &PcI, 2*TELX*TELY*sizeof(float));
+	//VARIÁVEIS DECLARADAS NA GPU
+	float *PcL;	
+	cudaMalloc((void **) &PcL, 2*TELX*TELY*sizeof(float));
+	float *PcS;	
+	cudaMalloc((void **) &PcS, 2*TELX*TELY*sizeof(float));
+	float *PcI;	
+	cudaMalloc((void **) &PcI, 2*TELX*TELY*sizeof(float));
 	float *uc;	
 	cudaMalloc((void **) &uc, 2*TELX*TELY*sizeof(float));
 	float *Xc;	
@@ -118,40 +111,45 @@ int main(void)
 	
 	float lambda=(1/a2)*((D*TAU0)/(E0*E0));//*(TAU0/(E0*E0));
 	printf("lambda=%f\n",lambda);
-printf("d0=%f\n",(a1*E0/lambda));
-printf("E0/d0=%f\n",E0*(lambda/a1*E0));
+	printf("d0=%f\n",(a1*E0/lambda));
+	printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
 	FILE *arq;
 	FILE *arq2;
-	FILE *arq3;
+	//FILE *arq3;
 	
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("E_d08","w");//para binário "wb"
-arq3=fopen("E_d08i","w");//para binário "wb"
-arq2=fopen("DendritasParalE_d08","wb");
+arq=fopen("JohnsonPS","w");
+arq2=fopen("JohnsonPSbin","wb");
+//arq=fopen("JohnsonPSbin","wb");
+//arq2=fopen("JohnsonPL","wb");
+//arq3=fopen("JohnsonPI","wb");
+//arq=fopen("E_d08","w");//para binário "wb"
+//arq3=fopen("E_d08i","w");//para binário "wb"
+//arq2=fopen("DendritasParalE_d08","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
 inicializar(0,1,0,TELX,0,TELY,u,-Ui);
-inicializar(0,1,0,TELX,0,TELY,P,1);
-//inicializar(0,1,0,TELX,0,TELY,PL,1);
-//inicializar(0,1,0,TELX,0,TELY,PS,0);
-//inicializar(0,1,0,TELX,0,TELY,PI,0);
+inicializar(0,1,0,TELX,0,TELY,PL,1);
+inicializar(0,1,0,TELX,0,TELY,PS,0);
+inicializar(0,1,0,TELX,0,TELY,PI,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-/*for (i=0;i<=compL;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<compL/2;j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<(TELY/2);j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
 		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
 		PI[0][i][j]=1;
 		PS[0][i][j]=0;
 		PL[0][i][j]=0;
 	}
-	for(j=compL/2;j<=compL;j++)
-		if(i<(compL/2)){
+
+	for(j=(TELY/2);j<TELY;j++)
+		if(i<((TELX-1)/2)){
 		PI[0][i][j]=0;
 		PS[0][i][j]=1;
 		PL[0][i][j]=0;
@@ -161,18 +159,17 @@ inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 		PS[0][i][j]=0;
 		PL[0][i][j]=1;
 		}
-}*/
+}
+//printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
-
-//printf(" P[5][5]=%f P[30][30]=%f\n", P[1][5][5], P[1][30][30]);
+//COPIANDO VALORES DA CPU (HOST) PARA AS VARIÁVEIS DA GPU (DEVICE)
 for(int t=0;t<2;t++)
 {
 	for(int i=0;i<TELX;i++)
 	{
-	cudaMemcpy(Pc+((t*TELX*TELY)+(i*TELX)), P[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpy(PcS+((t*TELX*TELY)+(i*TELX)), PS[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpy(PcL+((t*TELX*TELY)+(i*TELX)), PL[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	//cudaMemcpy(PcI+((t*TELX*TELY)+(i*TELX)), PI[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcS+((t*TELX*TELY)+(i*TELX)), PS[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcL+((t*TELX*TELY)+(i*TELX)), PL[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcI+((t*TELX*TELY)+(i*TELX)), PI[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(uc+((t*TELX*TELY)+(i*TELX)), u[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(Xc+((t*TELX*TELY)+(i*TELX)), X[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	}
@@ -186,16 +183,17 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
+for(tempo=0;tempo<=10;tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(Pc,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda);
 cudaDeviceSynchronize();
-
 //CALCULO DO CAMPO DE TEMPERATURAS
-Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
-cudaDeviceSynchronize();
+//Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
+//cudaDeviceSynchronize();
 /*cudaError_t erro = cudaGetLastError();        // Get error code
 
    if ( erro != cudaSuccess )
@@ -206,26 +204,33 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%625==0){
+	if (tempo%1==0){//%5000
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
 			{
-			cudaMemcpy(P[t][i], Pc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			//cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			//cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			//cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
-			//printf(" P0[5][5]=%f P1[30][30]=%f\n", P[t][5][5], P[t][30][30]);
-			printf(" X0[5][5]=%f X1[30][30]=%f\n", X[t][5][5], X[t][30][30]);
 		}
-	printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
-	printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
-
-		fprintf(arq,"phi:t=%.8f\n",(tempo*dt));
-	/*for(int j=0;j<TELY-1;j++){
+	//printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
+	//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
+	//printf(" PS[1][1]=%f PS[60][70]=%f PS[70][70]=%f\n", PS[0][1][1], PS[0][60][70], PS[0][70][70]);
+	fprintf(arq, "phi:t=%f\n",(tempo*dt));
+	for(j=0;j<TELY;j++)
+	{
+		for(i=0;i<TELX;i++)
+		{
+			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
+			fprintf(arq,"%d %d %f\n", i,j,contorno);
+		}
+	}
+	fprintf(arq,"\n\n");
+/*fprintf(arq,"phi:t=%.8f\n",(tempo*dt));   TRECHO PARA IMPRIMIR A POSIÇÃO DA INTERFACE E CALCULAR A VELOCIDADE
+	for(int j=0;j<TELY-1;j++){
 		if (P[1][0][j]*P[1][0][j+1]<0)
 		fprintf(arq,"%d %f %d %f\n",j, P[1][0][j],j+1,P[1][0][j+1]);
 		}
@@ -236,55 +241,58 @@ cudaDeviceSynchronize();
 		if (P[1][i][0]*P[1][i+1][0]<0)
 		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
 		}
-		fprintf(arq3,"\n\n");
-*/
-	for (int i = 0; i < TELX; i++) {
-		fwrite(P[1][i], sizeof(float), TELY, arq2);
+		fprintf(arq3,"\n\n");*/
+
+	//IMPRESSÃO NO ARQUIVO BINÁRIO
+	/*for (int j = 0; j < TELY; j++) {
+		for(int i = 0; i < TELX; i++){
+			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
+		}
+		fwrite(contorno[j], sizeof(float), TELX, arq2);
 		//fwrite(X[1][i], sizeof(float), TELY, arq2);
 		}
+printf(" con[5][5]=%f con[70][63]=%f\n", contorno[5][5], contorno[70][63]);*/
 }
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
 
-atualizaTudo<<<numBlocks, numThreads >>>(Pc,Pc);
+atualizaTudo<<<numBlocks, numThreads >>>(PcS,PcS);
+atualizaTudo<<<numBlocks, numThreads >>>(PcL,PcL);
+atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
 
 printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
 printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
+
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
-
 fclose(arq);
-fclose(arq2);
-fclose(arq3);
-
+//fclose(arq2);
+//fclose(arq3);
 for(int t=0;t<2;t++){
 	for(int i=0;i<TELX;i++){
-		free(P[t][i]);
-		//free(PS[t][i]);
-		//free(PL[t][i]);
-		//free(PI[t][i]);
+		
+		free(PS[t][i]);
+		free(PL[t][i]);
+		free(PI[t][i]);
 		free(u[t][i]);
 		free(X[t][i]);
 	}
-	free(P[t]);
-	//free(PS[t]);
-	//free(PL[t]);
-	//free(PI[t]);
+	free(PS[t]);
+	free(PL[t]);
+	free(PI[t]);
 	free(u[t]);
 	free(X[t]);
 }
-free(P);
-//free(PS);
-//free(PL);
-//free(PI);
+free(PS);
+free(PL);
+free(PI);
 free(u);
 free(X);
 
-cudaFree(Pc);
-//cudaFree(PcS);
-//cudaFree(PcL);
-//cudaFree(PcI);
+cudaFree(PcS);
+cudaFree(PcL);
+cudaFree(PcI);
 cudaFree(uc);
 cudaFree(Xc);
 cudaFree(deltac);

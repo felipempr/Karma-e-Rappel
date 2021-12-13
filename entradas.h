@@ -12,13 +12,19 @@
 #define D 4.4312
 #define a1 0.8839
 #define a2 0.6267
+
+#define L -1.0 //considerando LGB=LTJ=1
+#define alfa 1.0
+#define beta 1.0
+#define gamma 1.5
+#define kappa 1.0
 //PARÂMETROS DE GEOMETRIA
-#define compL 500	//comprimento do domínio
+#define compL 50	//comprimento do domínio era 500
 #define R 15		//raio inicial
-#define TELX 1250	//total de elementos na direção x 1250
-#define TELY 1250	//total de elementos na direção y 1250
+#define TELX 125	//total de elementos na direção x 1250
+#define TELY 125	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 938	//tempo total da simulação 3750
+#define Ttot 1000	//tempo total da simulação 3750
 #define dt 0.02		//tamanho do intervalo entre os passos de tempo
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
