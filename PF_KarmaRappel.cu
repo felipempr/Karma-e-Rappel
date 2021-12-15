@@ -24,6 +24,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
+void cristal(float **cont);
 
 int main(void)
 {
@@ -103,6 +104,8 @@ int main(void)
 	cudaMalloc((void **) &Xc, 2*TELX*TELY*sizeof(float));
 	float *deltac;
 	cudaMalloc((void **) &deltac, TELX*TELY*sizeof(float));
+
+
 	
 
 	//CÁLCULO DOS NÚMEROS DE FOURIER E BIOT
@@ -114,18 +117,15 @@ int main(void)
 	printf("d0=%f\n",(a1*E0/lambda));
 	printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
-	//FILE *arq;
+	FILE *arq;
 	FILE *arq2;
 	//FILE *arq3;
 	
 	
 printf("\ntelt=%d\n",telt);
 
-//arq=fopen("JohnsonPS","w");
+arq=fopen("JohnsonPS","w");
 arq2=fopen("JohnsonPSbin","wb");
-//arq=fopen("JohnsonPSbin","wb");
-//arq2=fopen("JohnsonPL","wb");
-//arq3=fopen("JohnsonPI","wb");
 //arq=fopen("E_d08","w");//para binário "wb"
 //arq3=fopen("E_d08i","w");//para binário "wb"
 //arq2=fopen("DendritasParalE_d08","wb");
@@ -140,15 +140,30 @@ inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
 for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<(TELY/2);j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<(3*TELY/4);j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
 		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
+		if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
+		//if(i<((j+((1.0*(TELY-1))/2.0))/(2.0*(TELY-1)/(TELX-1)))){
+		PI[0][i][j]=0;
+		PS[0][i][j]=1;
+		PL[0][i][j]=0;
+		}
+		else if(i>((j-((9.0*(TELY-1))/4.0))/-((3.0*(TELY-1))/(TELX-1)))){
+		//else if(i>((j-((3.0*(TELY-1))/2.0))/-((2.0*(TELY-1))/(TELX-1)))){
+		PI[0][i][j]=0;
+		PS[0][i][j]=0;
+		PL[0][i][j]=1;
+		}
+		else{
 		PI[0][i][j]=1;
 		PS[0][i][j]=0;
 		PL[0][i][j]=0;
+		}
+
 	}
 
-	for(j=(TELY/2);j<TELY;j++)
+	for(j=(3*TELY/4);j<TELY;j++)
 		if(i<((TELX-1)/2)){
 		PI[0][i][j]=0;
 		PS[0][i][j]=1;
@@ -185,7 +200,7 @@ for (int t=0;t<2;t++){
 
 for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
-printf("%d, ",tempo);
+//printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
 P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
 P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
@@ -204,7 +219,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%4000==0){//%5000
+	if (tempo%1000==0){//%5000
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -231,6 +246,7 @@ cudaDeviceSynchronize();
 	//IMPRESSÃO NO ARQUIVO BINÁRIO
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
+			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
 			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
@@ -250,8 +266,9 @@ printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
 printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 
+cristal(contorno);
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
-//fclose(arq);
+fclose(arq);
 fclose(arq2);
 //fclose(arq3);
 for(int t=0;t<2;t++){
@@ -299,4 +316,15 @@ void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
 		}
 	}
 }
-
+//FUNÇÃO PARA OBTER VALORES DO CONTORNO
+void cristal(float **cont)
+{
+	for(int i=TELX/2;i<TELX;i++)
+	{
+		for(int j=TELY-1;j>=0;j--)
+		{
+			if(0.49<cont[i][j]<0.51)
+			printf("x=%d y=%d\n",i,j);
+		}
+	}
+}

@@ -13,7 +13,12 @@
 #define a1 0.8839
 #define a2 0.6267
 
-#define L -1.0 //considerando LGB=LTJ=1
+#define Li -0.5 //considerando LGB=LTJ=1
+#define LGB 1.0
+#define LTJ 0.01
+#define phiW 5000.0
+#define phiMin 1.04
+
 #define alfa 1.0
 #define beta 1.0
 #define gamma 1.5
@@ -24,7 +29,7 @@
 #define TELX 300	//total de elementos na direção x 1250
 #define TELY 300	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 1000	//tempo total da simulação 3750
+#define Ttot 250	//tempo total da simulação 3750
 #define dt 0.005		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
