@@ -25,7 +25,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
-void cristal(FILE *arquivo, float **cont);
+void cristal(FILE *arquivo, float **cont, float ySim[]);
+void curvas(FILE *arquivo,FILE *arquivo2, float ySim[]);
 
 int main(void)
 {
@@ -37,6 +38,7 @@ int main(void)
 	
 	//char p;
 		
+	float ySim[TELX];
 	int telt=Ttot/dt;
 	float dx=(float)compL/(float)TELX;
 	float dy=(float)compL/(float)TELY;
@@ -119,6 +121,7 @@ int main(void)
 	printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
 	FILE *arq;
+	FILE *arqb;
 	FILE *arq2;
 	//FILE *arq3;
 	
@@ -126,6 +129,7 @@ int main(void)
 printf("\ntelt=%d\n",telt);
 
 arq=fopen("JohnsonPS","w");
+arqb=fopen("JohnsonPSsim","w");
 arq2=fopen("JohnsonPSbin","wb");
 //arq=fopen("E_d08","w");//para binário "wb"
 //arq3=fopen("E_d08i","w");//para binário "wb"
@@ -199,7 +203,7 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=1000;tempo++)//tempo<=telt
+for(tempo=0;tempo<=(telt/2);tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
@@ -220,7 +224,8 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%100==0){//%5000
+if (tempo%5000==0)
+	{//%5000
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -251,20 +256,25 @@ cudaDeviceSynchronize();
 			contorno[-j+TELY-1][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
-		//fwrite(X[1][i], sizeof(float), TELY, arq2);
-		}
-//printf(" con[5][5]=%f con[70][63]=%f\n", contorno[5][5], contorno[70][63]);
-fprintf(arq, "t=%f\n",(tempo*dt));
-cristal(arq, contorno);
-fprintf(arq,"\n\n");
+	}
 }
-//ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
+//PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 
+if (tempo==17500)
+	{
+	cristal(arqb, contorno, ySim);
+	}
+//NO FINAL CALCULO A CURVA ANALÍTICA E COMPARO COM YSIM
+
+
+//ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
 atualizaTudo<<<numBlocks, numThreads >>>(PcS,PcS);
 atualizaTudo<<<numBlocks, numThreads >>>(PcL,PcL);
 atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
+
+curvas(arq,arqb,ySim);
 
 printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
@@ -319,65 +329,119 @@ void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
 		}
 	}
 }
-//FUNÇÃO PARA OBTER VALORES DO CONTORNO
-void cristal(FILE *arquivo, float **cont)
+//FUNÇÃO PARA GERAR AS CURVAS ANALÍTICAS E FAZER A COMPARAÇÃO
+void curvas(FILE *arquivo,FILE *arquivo2, float ySim[])
 {
-int j=0;
-int n1=0;
-
 bool FLAG=true;
-
+bool FLAG2=true;
+int x;
+int xoff;
+int n2=0;
+int nf;
+int af;
+float thetaf;
 float y;
-float n2=0;
 float eta;
 float c1;
 float c2;
-float theta=M_PI/3;
-/*
-int curvaSim[2];
-float curvaCalc[2];
-float dif[150];*/
-	//OBTENHO A CURVA SIMULADA
-	/*for(int i=0;i<TELX;i++)
+float theta;
+float sumquad=0;
+float reg;
+float yAna[TELX];
+float dif[TELX];
+
+//CALCULO A CURVA ANALÍTICA
+	for(int a=80;a<=200;a++)
 	{
-		
+		for(theta=M_PI/30;theta<=M_PI/3;theta=theta+M_PI/300)
+		{
+		FLAG=true;
+		sumquad=0;
+		x=0;
+		xoff=0;
+		eta=a/(2*theta);
+		c1=logf(sin(theta));
+		c2=-eta*(M_PI/2-theta);
+			while(xoff<TELX-1){
+			x=x+1;
+			//printf("x=%d xoff=%d\n",x,xoff);
+			//for(int x=0;x<TELX;x++)
+			y=eta*acos(exp((-x/eta)-c1))+c2;
+			if(y>0&&FLAG==true)//Só pra estabelecer onde começa o x
+				{
+				n2=x;
+				FLAG=false;
+				}
+				xoff=x-n2;
+				if(xoff>=0){//condição para o vetor existir e para não dar os resultados no final da linha
+				yAna[xoff]=y;
+				if(yAna[xoff]>0&&ySim[xoff]>0){
+				//fprintf(arquivo,"%f %f\n",x-n2,y);
+				//printf("yAna[%d]=%f ySim[%d]=%d\n",d,yAna[d],d,ySim[d]);
+				dif[xoff]=powf((yAna[xoff]-ySim[xoff]),2.0);
+				sumquad=sumquad+dif[xoff];
+				//printf("dif[%d]=%f\n",d,dif[d]);
+				}
+				}
+				//printf("sumquad=%f ",sumquad);
+			}
+			if(FLAG2==true&&sumquad>0){//primeiro mvalor atribuido à reg
+			reg=sumquad;
+			FLAG2=false;
+			}
+			if(sumquad<reg&&sumquad>0){
+			//printf("sum menor que reg ");
+			reg=sumquad;
+			nf=n2;
+			af=a;
+			thetaf=theta;
+			printf("nf=%d n2=%d, a=%d af=%d, theta=%f reg=%f\n",nf,n2,a,af,theta*180/M_PI,reg);
+			}
+		printf(".");
+		}
+		printf("X");
+	}
+		eta=af/(2*thetaf);
+		c1=logf(sin(thetaf));
+		c2=-eta*(M_PI/2-thetaf);
+		//printf("af=%d thetaf=%f eta=%f c1=%f c2=%f ln10=%f",af,thetaf,eta,c1,c2,log(10));
+		for(int x=0;x<TELX;x++){
+		//printf("n2=%d",nf);
+		y=eta*acos(exp((-x/eta)-c1))+c2;
+		//printf("[%d %f]",x-nf,y);
+		fprintf(arquivo,"%d %f\n",x-nf,y);
+		fprintf(arquivo2,"%d %f\n",x,ySim[x]); //-i+TELX -j+TELY/2
+		}
+}
+//FUNÇÃO PARA OBTER VALORES DO CONTORNO SIMULADO
+void cristal(FILE *arquivo, float **cont, float ySim[])
+{
+bool FLAG=true;
+
+int j=0;
+int n1=0;
+
+	//OBTENHO A CURVA SIMULADA
+	for(int i=0;i<TELX;i++)
+	{
 		j=TELX/2;
 		do{
 		j=j-1;
 		}
 		while(cont[i][j]>0.51&&j>0);
-		if(j==((TELX/2)-5)&&FLAG==true){
+		if(j<=((TELX/2)-5)&&FLAG==true){
 		n1=i;
 		FLAG=false;
 		}
-		if(j<(TELX/2)-5)
-		fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
+		if(j<(TELX/2)-5){
+		ySim[i-n1]=-j+TELY/2;
+		//printf("n1=%d i=%d\n",n1,i);
+		//printf("ySim[%d]=%d\n",i-n1,-j+TELY/2);
+		//fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
+		}
+		
 
-	}*/
-	//CALCULO A CURVA ANALÍTICA
-	for(int a=0;a<=100;a++)
-	{
-	FLAG=true;
-		//for(theta=M_PI/30;M_PI/3;theta=theta+M_PI/30)
-		//{
-		eta=a/(2*theta);
-		c1=log(sin(theta));
-		c2=-eta*(M_PI/2-theta);
-		fprintf(arquivo,"a=%f-theta=%f\n",a,theta);
-			for(int x=0;x<=300;x++)
-			{
-			y=eta*acos(exp((-x/eta)-c1))+c2;
-			if(y>0&&FLAG==true)
-				{
-				n2=x;
-				FLAG=false;
-				}
-				fprintf(arquivo,"%f %f\n",x-n2,y);
-			//curvaCalc[0]=x-n;
-			//curvaCalc[1]=y;
-			}
-			fprintf(arquivo,"\n\n");
-		//}
 	}
+	
 
 }
