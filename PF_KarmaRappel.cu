@@ -6,6 +6,7 @@
 *********************************************************************************************************************************/
 
 
+#define _USE_MATH_DEFINES
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -24,7 +25,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
-void cristal(float **cont);
+void cristal(FILE *arquivo, float **cont);
 
 int main(void)
 {
@@ -109,8 +110,8 @@ int main(void)
 	
 
 	//CÁLCULO DOS NÚMEROS DE FOURIER E BIOT
-	float Fox=D*dt/(dx*dx);
-	float Foy=D*dt/(dy*dy);
+	//float Fox=D*dt/(dx*dx);
+	//float Foy=D*dt/(dy*dy);
 	
 	float lambda=(1/a2)*((D*TAU0)/(E0*E0));//*(TAU0/(E0*E0));
 	printf("lambda=%f\n",lambda);
@@ -198,9 +199,9 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
+for(tempo=0;tempo<=1000;tempo++)//tempo<=telt
 {
-//printf("%d, ",tempo);
+printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
 P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
 P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
@@ -219,7 +220,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%1000==0){//%5000
+	if (tempo%100==0){//%5000
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -247,12 +248,15 @@ cudaDeviceSynchronize();
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
+			contorno[-j+TELY-1][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
 		//fwrite(X[1][i], sizeof(float), TELY, arq2);
 		}
 //printf(" con[5][5]=%f con[70][63]=%f\n", contorno[5][5], contorno[70][63]);
+fprintf(arq, "t=%f\n",(tempo*dt));
+cristal(arq, contorno);
+fprintf(arq,"\n\n");
 }
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
 
@@ -266,7 +270,6 @@ printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
 printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 
-cristal(contorno);
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 fclose(arq);
 fclose(arq2);
@@ -317,14 +320,64 @@ void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
 	}
 }
 //FUNÇÃO PARA OBTER VALORES DO CONTORNO
-void cristal(float **cont)
+void cristal(FILE *arquivo, float **cont)
 {
-	for(int i=TELX/2;i<TELX;i++)
+int j=0;
+int n1=0;
+
+bool FLAG=true;
+
+float y;
+float n2=0;
+float eta;
+float c1;
+float c2;
+float theta=M_PI/3;
+/*
+int curvaSim[2];
+float curvaCalc[2];
+float dif[150];*/
+	//OBTENHO A CURVA SIMULADA
+	/*for(int i=0;i<TELX;i++)
 	{
-		for(int j=TELY-1;j>=0;j--)
-		{
-			if(0.49<cont[i][j]<0.51)
-			printf("x=%d y=%d\n",i,j);
+		
+		j=TELX/2;
+		do{
+		j=j-1;
 		}
+		while(cont[i][j]>0.51&&j>0);
+		if(j==((TELX/2)-5)&&FLAG==true){
+		n1=i;
+		FLAG=false;
+		}
+		if(j<(TELX/2)-5)
+		fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
+
+	}*/
+	//CALCULO A CURVA ANALÍTICA
+	for(int a=0;a<=100;a++)
+	{
+	FLAG=true;
+		//for(theta=M_PI/30;M_PI/3;theta=theta+M_PI/30)
+		//{
+		eta=a/(2*theta);
+		c1=log(sin(theta));
+		c2=-eta*(M_PI/2-theta);
+		fprintf(arquivo,"a=%f-theta=%f\n",a,theta);
+			for(int x=0;x<=300;x++)
+			{
+			y=eta*acos(exp((-x/eta)-c1))+c2;
+			if(y>0&&FLAG==true)
+				{
+				n2=x;
+				FLAG=false;
+				}
+				fprintf(arquivo,"%f %f\n",x-n2,y);
+			//curvaCalc[0]=x-n;
+			//curvaCalc[1]=y;
+			}
+			fprintf(arquivo,"\n\n");
+		//}
 	}
+
 }
