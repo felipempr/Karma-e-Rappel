@@ -15,7 +15,7 @@
 
 #define Li -0.5 //considerando LGB=LTJ=1
 #define LGB 1.0
-#define LTJ 0.01
+#define LTJ 1.0
 #define phiW 5000.0
 #define phiMin 1.04
 

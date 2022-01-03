@@ -45,28 +45,60 @@ int main(void)
 	//const float sigma=E/sqrt(2*W);
 	
 	//VARIÁVEIS DAS FASES LÍQUIDA, SÓLIDA E IMÓVEL(?)
-	float ***PL;
-	PL=(float***)malloc(2*sizeof(float**));
+	float ***PA;
+	PA=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
-		PL[t]=(float**)malloc(TELX*sizeof(float*));
+		PA[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
-			PL[t][i]=(float*)malloc(TELY*sizeof(float));
+			PA[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
-	float ***PS;
-	PS=(float***)malloc(2*sizeof(float**));
+	float ***PB;
+	PB=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
-		PS[t]=(float**)malloc(TELX*sizeof(float*));
+		PB[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
-			PS[t][i]=(float*)malloc(TELY*sizeof(float));
+			PB[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
-	float ***PI;
-	PI=(float***)malloc(2*sizeof(float**));
+	float ***PC;
+	PC=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
-		PI[t]=(float**)malloc(TELX*sizeof(float*));
+		PC[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
-			PI[t][i]=(float*)malloc(TELY*sizeof(float));
+			PC[t][i]=(float*)malloc(TELY*sizeof(float));
+		}
+	}
+	float ***PD;
+	PD=(float***)malloc(2*sizeof(float**));
+	for(int t=0;t<=1;t++){
+		PD[t]=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			PD[t][i]=(float*)malloc(TELY*sizeof(float));
+		}
+	}
+	float ***PE;
+	PE=(float***)malloc(2*sizeof(float**));
+	for(int t=0;t<=1;t++){
+		PE[t]=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			PE[t][i]=(float*)malloc(TELY*sizeof(float));
+		}
+	}
+	float ***PF;
+	PF=(float***)malloc(2*sizeof(float**));
+	for(int t=0;t<=1;t++){
+		PF[t]=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			PF[t][i]=(float*)malloc(TELY*sizeof(float));
+		}
+	}
+	float ***P0;
+	P0=(float***)malloc(2*sizeof(float**));
+	for(int t=0;t<=1;t++){
+		P0[t]=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			P0[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
 	float **contorno;
@@ -95,12 +127,20 @@ int main(void)
 	}
 	
 	//VARIÁVEIS DECLARADAS NA GPU
-	float *PcL;	
-	cudaMalloc((void **) &PcL, 2*TELX*TELY*sizeof(float));
-	float *PcS;	
-	cudaMalloc((void **) &PcS, 2*TELX*TELY*sizeof(float));
-	float *PcI;	
-	cudaMalloc((void **) &PcI, 2*TELX*TELY*sizeof(float));
+	float *PcA;	
+	cudaMalloc((void **) &PcA, 2*TELX*TELY*sizeof(float));
+	float *PcB;	
+	cudaMalloc((void **) &PcB, 2*TELX*TELY*sizeof(float));
+	float *PcC;	
+	cudaMalloc((void **) &PcC, 2*TELX*TELY*sizeof(float));
+	float *PcD;	
+	cudaMalloc((void **) &PcD, 2*TELX*TELY*sizeof(float));
+	float *PcE;	
+	cudaMalloc((void **) &PcE, 2*TELX*TELY*sizeof(float));
+	float *PcF;	
+	cudaMalloc((void **) &PcF, 2*TELX*TELY*sizeof(float));
+	float *Pc0;	
+	cudaMalloc((void **) &Pc0, 2*TELX*TELY*sizeof(float));
 	float *uc;	
 	cudaMalloc((void **) &uc, 2*TELX*TELY*sizeof(float));
 	float *Xc;	
@@ -138,24 +178,43 @@ arq2=fopen("JohnsonPSbin","wb");
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
 inicializar(0,1,0,TELX,0,TELY,u,-Ui);
-inicializar(0,1,0,TELX,0,TELY,PL,1);
-inicializar(0,1,0,TELX,0,TELY,PS,0);
-inicializar(0,1,0,TELX,0,TELY,PI,0);
+inicializar(0,1,0,TELX,0,TELY,PA,0);
+inicializar(0,1,0,TELX,0,TELY,PB,0);
+inicializar(0,1,0,TELX,0,TELY,PC,0);
+inicializar(0,1,0,TELX,0,TELY,PD,0);
+inicializar(0,1,0,TELX,0,TELY,PE,0);
+inicializar(0,1,0,TELX,0,TELY,PF,0);
+inicializar(0,1,0,TELX,0,TELY,P0,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
 for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<(3*TELY/4);j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<TELY/2;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
-		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
+		if(j>(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
+		PA[0][i][j]=1;
+		if(j<(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i<TELX/2)
+		PB[0][i][j]=1;
+		if(j<(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i>TELX/2)
+		PC[0][i][j]=1;
+		if(j>(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
+		PD[0][i][j]=1;
+		if((pow((i),2)+pow((j),2))<=(R*R)){
+		P0[0][i][j]=1;
+		PA[0][i][j]=0;
+		PB[0][i][j]=0;
+		PC[0][i][j]=0;
+		PD[0][i][j]=0;
+		PE[0][i][j]=0;
+		PF[0][i][j]=0;}
+	}
+		/*//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
 		if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
-		//if(i<((j+((1.0*(TELY-1))/2.0))/(2.0*(TELY-1)/(TELX-1)))){
 		PI[0][i][j]=0;
 		PS[0][i][j]=1;
 		PL[0][i][j]=0;
 		}
 		else if(i>((j-((9.0*(TELY-1))/4.0))/-((3.0*(TELY-1))/(TELX-1)))){
-		//else if(i>((j-((3.0*(TELY-1))/2.0))/-((2.0*(TELY-1))/(TELX-1)))){
 		PI[0][i][j]=0;
 		PS[0][i][j]=0;
 		PL[0][i][j]=1;
@@ -164,12 +223,29 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PI[0][i][j]=1;
 		PS[0][i][j]=0;
 		PL[0][i][j]=0;
-		}
+		}*/
 
 	}
 
-	for(j=(3*TELY/4);j<TELY;j++)
-		if(i<((TELX-1)/2)){
+	for(j=TELY/2;j<TELY;j++)
+	{
+		if(j<(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
+		PA[0][i][j]=1;
+		if(j>(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i<TELX/2)
+		PF[0][i][j]=1;
+		if(j>(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i>TELX/2)
+		PE[0][i][j]=1;
+		if(j<(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
+		PD[0][i][j]=1;
+		if((pow((i),2)+pow((j),2))<=(R*R)){
+		P0[0][i][j]=1;
+		PA[0][i][j]=0;
+		PB[0][i][j]=0;
+		PC[0][i][j]=0;
+		PD[0][i][j]=0;
+		PE[0][i][j]=0;
+		PF[0][i][j]=0;}
+		/*if(i<((TELX-1)/2)){
 		PI[0][i][j]=0;
 		PS[0][i][j]=1;
 		PL[0][i][j]=0;
@@ -178,7 +254,8 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PI[0][i][j]=0;
 		PS[0][i][j]=0;
 		PL[0][i][j]=1;
-		}
+		}*/
+	}
 }
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
@@ -187,9 +264,13 @@ for(int t=0;t<2;t++)
 {
 	for(int i=0;i<TELX;i++)
 	{
-	cudaMemcpy(PcS+((t*TELX*TELY)+(i*TELX)), PS[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(PcL+((t*TELX*TELY)+(i*TELX)), PL[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(PcI+((t*TELX*TELY)+(i*TELX)), PI[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcA+((t*TELX*TELY)+(i*TELX)), PA[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcB+((t*TELX*TELY)+(i*TELX)), PB[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcC+((t*TELX*TELY)+(i*TELX)), PC[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcD+((t*TELX*TELY)+(i*TELX)), PD[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcE+((t*TELX*TELY)+(i*TELX)), PE[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcF+((t*TELX*TELY)+(i*TELX)), PF[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(Pc0+((t*TELX*TELY)+(i*TELX)), P0[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(uc+((t*TELX*TELY)+(i*TELX)), u[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(Xc+((t*TELX*TELY)+(i*TELX)), X[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	}
@@ -203,13 +284,17 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=(telt/2);tempo++)//tempo<=telt
+for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(Pc0,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,Pc0,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcB,PcC,PcD,PcE,PcF,Pc0,PcA,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcC,PcD,PcE,PcF,Pc0,PcA,PcB,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcD,PcE,PcF,Pc0,PcA,PcB,PcC,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcE,PcF,Pc0,PcA,PcB,PcC,PcD,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcF,Pc0,PcA,PcB,PcC,PcD,PcE,uc,dx,dy,lambda);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -230,9 +315,13 @@ if (tempo%5000==0)
 		{
 			for (int i=0;i<TELX;i++)
 			{
-			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PA[t][i], PcA+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PB[t][i], PcB+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PC[t][i], PcC+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PD[t][i], PcD+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PE[t][i], PcE+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PF[t][i], PcF+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(P0[t][i], Pc0+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
@@ -253,28 +342,32 @@ if (tempo%5000==0)
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[-j+TELY-1][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
+			contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+P0[0][i][j]*P0[0][i][j];
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
 	}
 }
 //PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 
-if (tempo==17500)
-	{
-	cristal(arqb, contorno, ySim);
-	}
+//if (tempo==25000)//35000 paraLTJ 0.01
+	//{
+	//cristal(arqb, contorno, ySim);
+	//}
 //NO FINAL CALCULO A CURVA ANALÍTICA E COMPARO COM YSIM
 
 
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
-atualizaTudo<<<numBlocks, numThreads >>>(PcS,PcS);
-atualizaTudo<<<numBlocks, numThreads >>>(PcL,PcL);
-atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
+atualizaTudo<<<numBlocks, numThreads >>>(PcA,PcA);
+atualizaTudo<<<numBlocks, numThreads >>>(PcB,PcB);
+atualizaTudo<<<numBlocks, numThreads >>>(PcC,PcC);
+atualizaTudo<<<numBlocks, numThreads >>>(PcD,PcD);
+atualizaTudo<<<numBlocks, numThreads >>>(PcE,PcE);
+atualizaTudo<<<numBlocks, numThreads >>>(PcF,PcF);
+atualizaTudo<<<numBlocks, numThreads >>>(Pc0,Pc0);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
 
-curvas(arq,arqb,ySim);
+//curvas(arq,arqb,ySim);
 
 printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
@@ -287,27 +380,43 @@ fclose(arq2);
 for(int t=0;t<2;t++){
 	for(int i=0;i<TELX;i++){
 		
-		free(PS[t][i]);
-		free(PL[t][i]);
-		free(PI[t][i]);
+		free(PA[t][i]);
+		free(PB[t][i]);
+		free(PC[t][i]);
+		free(PD[t][i]);
+		free(PE[t][i]);
+		free(PF[t][i]);
+		free(P0[t][i]);
 		free(u[t][i]);
 		free(X[t][i]);
 	}
-	free(PS[t]);
-	free(PL[t]);
-	free(PI[t]);
+	free(PA[t]);
+	free(PB[t]);
+	free(PC[t]);
+	free(PD[t]);
+	free(PE[t]);
+	free(PF[t]);
+	free(P0[t]);
 	free(u[t]);
 	free(X[t]);
 }
-free(PS);
-free(PL);
-free(PI);
+free(PA);
+free(PB);
+free(PC);
+free(PD);
+free(PE);
+free(PF);
+free(P0);
 free(u);
 free(X);
 
-cudaFree(PcS);
-cudaFree(PcL);
-cudaFree(PcI);
+cudaFree(PcA);
+cudaFree(PcB);
+cudaFree(PcC);
+cudaFree(PcD);
+cudaFree(PcE);
+cudaFree(PcF);
+cudaFree(Pc0);
 cudaFree(uc);
 cudaFree(Xc);
 cudaFree(deltac);
@@ -362,7 +471,7 @@ float dif[TELX];
 		eta=a/(2*theta);
 		c1=logf(sin(theta));
 		c2=-eta*(M_PI/2-theta);
-			while(xoff<TELX-1){
+			while(xoff<TELX-2){
 			x=x+1;
 			//printf("x=%d xoff=%d\n",x,xoff);
 			//for(int x=0;x<TELX;x++)
@@ -429,11 +538,11 @@ int n1=0;
 		j=j-1;
 		}
 		while(cont[i][j]>0.51&&j>0);
-		if(j<=((TELX/2)-5)&&FLAG==true){
+		if(j<((TELX/2)-1)&&FLAG==true){
 		n1=i;
 		FLAG=false;
 		}
-		if(j<(TELX/2)-5){
+		if(j<((TELX/2)-1)){
 		ySim[i-n1]=-j+TELY/2;
 		//printf("n1=%d i=%d\n",n1,i);
 		//printf("ySim[%d]=%d\n",i-n1,-j+TELY/2);
