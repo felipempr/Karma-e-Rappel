@@ -93,12 +93,12 @@ int main(void)
 			PF[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
-	float ***P0;
-	P0=(float***)malloc(2*sizeof(float**));
+	float ***PG;
+	PG=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
-		P0[t]=(float**)malloc(TELX*sizeof(float*));
+		PG[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
-			P0[t][i]=(float*)malloc(TELY*sizeof(float));
+			PG[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
 	float **contorno;
@@ -139,8 +139,8 @@ int main(void)
 	cudaMalloc((void **) &PcE, 2*TELX*TELY*sizeof(float));
 	float *PcF;	
 	cudaMalloc((void **) &PcF, 2*TELX*TELY*sizeof(float));
-	float *Pc0;	
-	cudaMalloc((void **) &Pc0, 2*TELX*TELY*sizeof(float));
+	float *PcG;	
+	cudaMalloc((void **) &PcG, 2*TELX*TELY*sizeof(float));
 	float *uc;	
 	cudaMalloc((void **) &uc, 2*TELX*TELY*sizeof(float));
 	float *Xc;	
@@ -184,23 +184,27 @@ inicializar(0,1,0,TELX,0,TELY,PC,0);
 inicializar(0,1,0,TELX,0,TELY,PD,0);
 inicializar(0,1,0,TELX,0,TELY,PE,0);
 inicializar(0,1,0,TELX,0,TELY,PF,0);
-inicializar(0,1,0,TELX,0,TELY,P0,0);
+inicializar(0,1,0,TELX,0,TELY,PG,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
 for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<TELY/2;j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<TELY;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
-		if(j>(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
+		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2))
 		PA[0][i][j]=1;
-		if(j<(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i<TELX/2)
-		PB[0][i][j]=1;
-		if(j<(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i>TELX/2)
+		if(j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
+		PA[0][i][j]=1;
+		if(j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i>=TELX/2)
 		PC[0][i][j]=1;
-		if(j>(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
-		PD[0][i][j]=1;
-		if((pow((i),2)+pow((j),2))<=(R*R)){
-		P0[0][i][j]=1;
+		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2))
+		PC[0][i][j]=1;
+		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i>=TELX/2)
+		PE[0][i][j]=1;
+		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
+		PE[0][i][j]=1;
+		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)){
+		PG[0][i][j]=1;
 		PA[0][i][j]=0;
 		PB[0][i][j]=0;
 		PC[0][i][j]=0;
@@ -224,27 +228,7 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PS[0][i][j]=0;
 		PL[0][i][j]=0;
 		}*/
-
-	}
-
-	for(j=TELY/2;j<TELY;j++)
-	{
-		if(j<(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
-		PA[0][i][j]=1;
-		if(j>(-sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i<TELX/2)
-		PF[0][i][j]=1;
-		if(j>(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2)&&i>TELX/2)
-		PE[0][i][j]=1;
-		if(j<(sqrt(3)/3)*i+TELY/2-(sqrt(3)/3)*(TELX/2))
-		PD[0][i][j]=1;
-		if((pow((i),2)+pow((j),2))<=(R*R)){
-		P0[0][i][j]=1;
-		PA[0][i][j]=0;
-		PB[0][i][j]=0;
-		PC[0][i][j]=0;
-		PD[0][i][j]=0;
-		PE[0][i][j]=0;
-		PF[0][i][j]=0;}
+		
 		/*if(i<((TELX-1)/2)){
 		PI[0][i][j]=0;
 		PS[0][i][j]=1;
@@ -255,7 +239,6 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PS[0][i][j]=0;
 		PL[0][i][j]=1;
 		}*/
-	}
 }
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
@@ -270,7 +253,7 @@ for(int t=0;t<2;t++)
 	cudaMemcpy(PcD+((t*TELX*TELY)+(i*TELX)), PD[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(PcE+((t*TELX*TELY)+(i*TELX)), PE[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(PcF+((t*TELX*TELY)+(i*TELX)), PF[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
-	cudaMemcpy(Pc0+((t*TELX*TELY)+(i*TELX)), P0[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(PcG+((t*TELX*TELY)+(i*TELX)), PG[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(uc+((t*TELX*TELY)+(i*TELX)), u[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(Xc+((t*TELX*TELY)+(i*TELX)), X[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	}
@@ -288,13 +271,13 @@ for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(Pc0,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,Pc0,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcB,PcC,PcD,PcE,PcF,Pc0,PcA,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcC,PcD,PcE,PcF,Pc0,PcA,PcB,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcD,PcE,PcF,Pc0,PcA,PcB,PcC,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcE,PcF,Pc0,PcA,PcB,PcC,PcD,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcF,Pc0,PcA,PcB,PcC,PcD,PcE,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcG,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,PcG,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcB,PcC,PcD,PcE,PcF,PcG,PcA,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcC,PcD,PcE,PcF,PcG,PcA,PcB,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcD,PcE,PcF,PcG,PcA,PcB,PcC,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcE,PcF,PcG,PcA,PcB,PcC,PcD,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcF,PcG,PcA,PcB,PcC,PcD,PcE,uc,dx,dy,lambda);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -321,7 +304,7 @@ if (tempo%5000==0)
 			cudaMemcpy(PD[t][i], PcD+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(PE[t][i], PcE+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(PF[t][i], PcF+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			cudaMemcpy(P0[t][i], Pc0+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PG[t][i], PcG+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
@@ -342,7 +325,7 @@ if (tempo%5000==0)
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+P0[0][i][j]*P0[0][i][j];
+			contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+PG[0][i][j]*PG[0][i][j];
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
 	}
@@ -363,7 +346,7 @@ atualizaTudo<<<numBlocks, numThreads >>>(PcC,PcC);
 atualizaTudo<<<numBlocks, numThreads >>>(PcD,PcD);
 atualizaTudo<<<numBlocks, numThreads >>>(PcE,PcE);
 atualizaTudo<<<numBlocks, numThreads >>>(PcF,PcF);
-atualizaTudo<<<numBlocks, numThreads >>>(Pc0,Pc0);
+atualizaTudo<<<numBlocks, numThreads >>>(PcG,PcG);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
 
@@ -386,7 +369,7 @@ for(int t=0;t<2;t++){
 		free(PD[t][i]);
 		free(PE[t][i]);
 		free(PF[t][i]);
-		free(P0[t][i]);
+		free(PG[t][i]);
 		free(u[t][i]);
 		free(X[t][i]);
 	}
@@ -396,7 +379,7 @@ for(int t=0;t<2;t++){
 	free(PD[t]);
 	free(PE[t]);
 	free(PF[t]);
-	free(P0[t]);
+	free(PG[t]);
 	free(u[t]);
 	free(X[t]);
 }
@@ -406,7 +389,7 @@ free(PC);
 free(PD);
 free(PE);
 free(PF);
-free(P0);
+free(PG);
 free(u);
 free(X);
 
@@ -416,7 +399,7 @@ cudaFree(PcC);
 cudaFree(PcD);
 cudaFree(PcE);
 cudaFree(PcF);
-cudaFree(Pc0);
+cudaFree(PcG);
 cudaFree(uc);
 cudaFree(Xc);
 cudaFree(deltac);

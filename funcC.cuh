@@ -159,7 +159,7 @@ __global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *
 		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		}
 
-	P[idx+TELX*TELY]=P[idx]+(dt*-L(P,Pa,Pb,idx))*(-alfa*P[idx]+beta*powf(P[idx],3.0)+2.0*gamma*P[idx]*(powf(Pa[idx],2.0)+powf(Pb[idx],2.0)+powf(Pc[idx],2.0)+powf(Pd[idx],2.0)+powf(Pe[idx],2.0)+powf(Pf[idx],2.0))-kappa*nabla2);
+	P[idx+TELX*TELY]=P[idx]+(dt*-L(P,Pa,Pb,Pc,Pd,Pe,Pf,idx))*(-alfa*P[idx]+beta*powf(P[idx],3.0)+2.0*gamma*P[idx]*(powf(Pa[idx],2.0)+powf(Pb[idx],2.0)+powf(Pc[idx],2.0)+powf(Pd[idx],2.0)+powf(Pe[idx],2.0)+powf(Pf[idx],2.0))-kappa*nabla2);
 	}
 }
 __device__ float L(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, int idx)

@@ -15,7 +15,7 @@
 
 #define Li -0.5 //considerando LGB=LTJ=1
 #define LGB 1.0
-#define LTJ 1.0
+#define LTJ 0.01
 #define phiW 5000.0
 #define phiMin 1.04
 
@@ -25,12 +25,12 @@
 #define kappa 1.0
 //PARÂMETROS DE GEOMETRIA
 #define compL 50	//comprimento do domínio era 500
-#define R 15		//raio inicial
-#define TELX 300	//total de elementos na direção x 1250
-#define TELY 300	//total de elementos na direção y 1250
+#define R 100		//raio inicial
+#define TELX 500	//total de elementos na direção x 1250
+#define TELY 500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 250	//tempo total da simulação 3750
-#define dt 0.005		//tamanho do intervalo entre os passos de tempo 0.02
+#define Ttot 100	//tempo total da simulação 3750
+#define dt 0.002		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
 #define LIQUIDO -1	//valor da variável de fase no estado líquido
