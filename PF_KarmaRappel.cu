@@ -42,7 +42,7 @@ int main(void)
 	int telt=Ttot/dt;
 	float dx=(float)compL/(float)TELX;
 	float dy=(float)compL/(float)TELY;
-	//const float sigma=E/sqrt(2*W);
+	//int FLAGmobi;
 	
 	//VARIÁVEIS DAS FASES LÍQUIDA, SÓLIDA E IMÓVEL(?)
 	float ***PL;
@@ -203,13 +203,13 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=(telt/2);tempo++)//tempo<=telt
+for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda,1);
+P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda,0);
+P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,1);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -239,15 +239,15 @@ if (tempo%5000==0)
 		}
 	//printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
 	//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
-	/*fprintf(arq, "phi:t=%f\n",(tempo*dt));
+	fprintf(arq, "phi:t=%f\n",(tempo*dt));
 	for(j=0;j<TELY;j++)
 	{
 		for(i=0;i<TELX;i++)
 		{
-			fprintf(arq,"%d %d %f\n", i,j,PS[0][i][j]);
+			fprintf(arq,"%d %d %f\n", i,j,PI[0][i][j]);
 		}
 	}
-	fprintf(arq,"\n\n");*/
+	fprintf(arq,"\n\n");
 
 	//IMPRESSÃO NO ARQUIVO BINÁRIO
 	for (int j = 0; j < TELY; j++) {
@@ -260,10 +260,10 @@ if (tempo%5000==0)
 }
 //PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 
-if (tempo==17500)
-	{
-	cristal(arqb, contorno, ySim);
-	}
+//if (tempo==17500)
+	//{
+	//cristal(arqb, contorno, ySim);
+	//}
 //NO FINAL CALCULO A CURVA ANALÍTICA E COMPARO COM YSIM
 
 
@@ -274,7 +274,7 @@ atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
 
-curvas(arq,arqb,ySim);
+//curvas(arq,arqb,ySim);
 
 printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
