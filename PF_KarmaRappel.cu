@@ -143,7 +143,26 @@ inicializar(0,1,0,TELX,0,TELY,PS,0);
 inicializar(0,1,0,TELX,0,TELY,PI,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+for(i=TELX/4;i<=3*TELX/4;i++)
+	{
+		for(j=TELY/2-10;j<TELY/2;j++)
+		{
+			PI[0][i][j]=1;
+			PS[0][i][j]=0;
+			PL[0][i][j]=0;
+		}
+		for(j=TELY/2;j<=TELY/2+R;j++)
+		{
+			if(((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)))
+			{
+				PI[0][i][j]=0;
+				PS[0][i][j]=1;
+				PL[0][i][j]=0;
+			}
+		}
+	}
+
+/*for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)	HEXAGONO
 {
 	for (j=0;j<(3*TELY/4);j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
@@ -179,7 +198,7 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PS[0][i][j]=0;
 		PL[0][i][j]=1;
 		}
-}
+}*/
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
 //COPIANDO VALORES DA CPU (HOST) PARA AS VARIÁVEIS DA GPU (DEVICE)
@@ -203,13 +222,13 @@ for (int t=0;t<2;t++){
 	cudaMemcpy(teste[t][i], testec+((t*4*4)+(i*4)), 4*sizeof(float), cudaMemcpyDeviceToHost);}
 }*/
 
-for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
+for(tempo=0;tempo<=telt/10;tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
 P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda,1);
-P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda,0);
-P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,1);
+P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda,1);
+P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,0);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -224,7 +243,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%5000==0)
+if (tempo%500==0)
 	{//%5000
 		for (int t=0;t<2;t++)
 		{
