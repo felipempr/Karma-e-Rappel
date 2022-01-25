@@ -134,27 +134,27 @@ __global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *
 	if(idx>=0&&idx<TELX) //LINHA DE BAIXO
 		{
 		if(idx==0) //CANTO INFERIOR ESQUERDO
-		nabla2=((P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy));
+		nabla2=((P[idx+(TELX-1)]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+((TELX-1)*TELY)])/(dy*dy));
 		else if(idx==TELX-1) //CANTO INFERIOR DIREITO
-		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy));
+		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-(TELX-1)])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+((TELX-1)*TELY)])/(dy*dy));
 		else
-		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy));
+		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx+((TELX-1)*TELY)])/(dy*dy));
 		}
 	else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY) //LINHA SUPERIOR
 		{
 		if(idx==TELX*(TELY-1)) //CANTO SUPERIOR ESQUERDO
-		nabla2=((P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
+		nabla2=((P[idx+(TELX-1)]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx-((TELX-1)*TELY)]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		else if(idx==(TELX*TELY)-1) //CANTO SUPERIOR DIREITO
-		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
+		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-(TELX-1)])/(dx*dx))+((P[idx-((TELX-1)*TELY)]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		else
-		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
+		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx-((TELX-1)*TELY)]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		}
 	else
 		{
 		if(idx%TELX==0) //CONTORNO ESQUERDO
-		nabla2=((P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
+		nabla2=((P[idx+(TELX-1)]-2.0*P[idx]+P[idx+1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		else if((idx+1)%TELX==0) //CONTORNO DIREITO
-		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
+		nabla2=((P[idx-1]-2.0*P[idx]+P[idx-(TELX-1)])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		else
 		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		}

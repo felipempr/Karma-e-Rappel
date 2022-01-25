@@ -194,15 +194,15 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2))
 		PA[0][i][j]=1;
 		if(j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
-		PA[0][i][j]=1;
+		PB[0][i][j]=1;
 		if(j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i>=TELX/2)
 		PC[0][i][j]=1;
 		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2))
-		PC[0][i][j]=1;
+		PA[0][i][j]=1;
 		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i>=TELX/2)
-		PE[0][i][j]=1;
+		PC[0][i][j]=1;
 		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
-		PE[0][i][j]=1;
+		PB[0][i][j]=1;
 		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)){
 		PG[0][i][j]=1;
 		PA[0][i][j]=0;
@@ -292,7 +292,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%5000==0)
+if (tempo%500==0)
 	{//%5000
 		for (int t=0;t<2;t++)
 		{
@@ -311,16 +311,17 @@ if (tempo%5000==0)
 		}
 	//printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
 	//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
-	/*fprintf(arq, "phi:t=%f\n",(tempo*dt));
+	fprintf(arq, "phi:t=%f\n",(tempo*dt));
 	for(j=0;j<TELY;j++)
 	{
 		for(i=0;i<TELX;i++)
 		{
-			fprintf(arq,"%d %d %f\n", i,j,PS[0][i][j]);
+			//contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+PG[0][i][j]*PG[0][i][j];
+			fprintf(arq,"%d %d %f\n", i,j,0);
 		}
 	}
-	fprintf(arq,"\n\n");*/
-
+	fprintf(arq,"\n\n");
+	
 	//IMPRESSÃO NO ARQUIVO BINÁRIO
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
