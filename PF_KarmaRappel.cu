@@ -9,6 +9,7 @@
 #define _USE_MATH_DEFINES
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include <cuda.h>
 #include "entradas.h"
@@ -25,18 +26,29 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
-void cristal(FILE *arquivo, float **cont, float ySim[]);
+void cristal(float **cont, float ySim[]);
 void curvas(FILE *arquivo,FILE *arquivo2, float ySim[]);
+unsigned char* readBMP();
+
 
 int main(void)
 {
+
+//TRECHO RELATIVO A ABERTURA DA IMAGEM
+
+readBMP();
+
+//FIM DO TRECHO RELATIVO A IMAGEM
+
+
+
 	int i;
 	int j;
 	int tempo;
 	int numThreads = 512;
 	int numBlocks = (TELX*TELY + numThreads - 1)/numThreads; //3052
 	int A[2]={0,0};
-	float delA;
+	//float delA;
 	
 	//char p;
 		
@@ -165,14 +177,16 @@ int main(void)
 	FILE *arq;
 	FILE *arqb;
 	FILE *arq2;
-	//FILE *arq3;
+	FILE *arq2b;
 	
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("JohnsonPS","w");
+arq=fopen("JohnsonPSanal","w");
 arqb=fopen("JohnsonPSsim","w");
+
 arq2=fopen("JohnsonPSbin","wb");
+arq2b=fopen("JohnsonPSDel","w");
 //arq=fopen("E_d08","w");//para binário "wb"
 //arq3=fopen("E_d08i","w");//para binário "wb"
 //arq2=fopen("DendritasParalE_d08","wb");
@@ -223,7 +237,7 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PC[0][i][j]=1;
 		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
 		PB[0][i][j]=1;
-		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)){
+		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)&&i>TELX/2){//&&i>TELX/2
 		PG[0][i][j]=1;
 		PA[0][i][j]=0;
 		PB[0][i][j]=0;
@@ -231,6 +245,16 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PD[0][i][j]=0;
 		PE[0][i][j]=0;
 		PF[0][i][j]=0;}
+		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)&&i<=TELX/2){//&&i>TELX/2
+		PG[0][i][j]=0;
+		PA[0][i][j]=0;
+		PB[0][i][j]=0;
+		PC[0][i][j]=0;
+		PD[0][i][j]=0;
+		PE[0][i][j]=0;
+		PF[0][i][j]=1;
+		}
+
 	}
 		/*//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
 		if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
@@ -311,7 +335,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%1000==0)//%5000
+if (tempo%50==0)//%5000
 	{printf("\t%d, ",tempo);
 	A[1]=0;
 		for (int t=0;t<2;t++)
@@ -346,15 +370,16 @@ if (tempo%1000==0)//%5000
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//ARQUIVO BINÁRIO
 	}
 	fprintf(arq,"\n\n");
-	delA=(A[1]-A[0])/(dt*1000);
-	printf(" %f %d %d ",delA,A[0],A[1]);
+	//delA=(A[1]-A[0])/(dt*1000);
+	fprintf(arq2b,"%f %d\n",(tempo*dt),A[1]);
+	//fwrite(&A[1], sizeof(int),1, arq2b);
 	A[0]=A[1];
 }
 //PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 
 //if (tempo==25000)//35000 paraLTJ 0.01
 	//{
-	//cristal(arqb, contorno, ySim);
+	//cristal(contorno, ySim);
 	//}
 //NO FINAL CALCULO A CURVA ANALÍTICA E COMPARO COM YSIM
 
@@ -379,7 +404,7 @@ printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 fclose(arq);
 fclose(arq2);
-//fclose(arq3);
+fclose(arq2b);
 for(int t=0;t<2;t++){
 	for(int i=0;i<TELX;i++){
 		
@@ -462,7 +487,7 @@ float reg;
 float yAna[TELX];
 float dif[TELX];
 
-//CALCULO A CURVA ANALÍTICA
+//CALCULO A CURVA ANALÍTICA E IMPRES~SÃO DE AMBAS EM SEUS RESPECTIVOS ARQUIVOS
 	for(int a=80;a<=200;a++)
 	{
 		for(theta=M_PI/30;theta<=M_PI/3;theta=theta+M_PI/300)
@@ -513,6 +538,7 @@ float dif[TELX];
 		}
 		printf("X");
 	}
+	//Depois que é decidido o theta e o a que fazem coincidir as duas curvas as imprimo
 		eta=af/(2*thetaf);
 		c1=logf(sin(thetaf));
 		c2=-eta*(M_PI/2-thetaf);
@@ -526,7 +552,7 @@ float dif[TELX];
 		}
 }
 //FUNÇÃO PARA OBTER VALORES DO CONTORNO SIMULADO
-void cristal(FILE *arquivo, float **cont, float ySim[])
+void cristal(float **cont, float ySim[]) //como não estava usando, retirei o parâmetro FILE
 {
 bool FLAG=true;
 
@@ -551,9 +577,47 @@ int n1=0;
 		//printf("ySim[%d]=%d\n",i-n1,-j+TELY/2);
 		//fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
 		}
-		
-
 	}
-	
+}
+unsigned char* readBMP()
+{
+    int i;
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste.bmp", "rb");
 
+    if(f == NULL)
+        throw "Argument Exception";
+
+    unsigned char info[54];
+    fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
+
+    // extract image height and width from header
+    int width = *(int*)&info[18];
+    int height = *(int*)&info[22];
+/*
+    cout << endl;
+    cout << "  Name: " << filename << endl;
+    cout << " Width: " << width << endl;
+    cout << "Height: " << height << endl;
+	*/
+    int row_padded = (width*3 + 3) & (~3);
+    unsigned char* data = new unsigned char[row_padded];
+    unsigned char tmp;
+
+    for(int i = 0; i < height; i++)
+    {
+        fread(data, sizeof(unsigned char), row_padded, f);
+        for(int j = 0; j < width*3; j += 3)
+        {
+            // Convert (B, G, R) to (R, G, B)
+            tmp = data[j];
+            data[j] = data[j+2];
+            data[j+2] = tmp;
+
+            printf("R:%d G:%d B:%d\n",data[j],data[j+1],data[j+2]);
+			//cout << "R: "<< (int)data[j] << " G: " << (int)data[j+1]<< " B: " << (int)data[j+2]<< endl;
+        }
+    }
+
+    fclose(f);
+    return data;
 }
