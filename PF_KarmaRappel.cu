@@ -35,6 +35,8 @@ int main(void)
 	int tempo;
 	int numThreads = 512;
 	int numBlocks = (TELX*TELY + numThreads - 1)/numThreads; //3052
+	int A[2]={0,0};
+	float delA;
 	
 	//char p;
 		
@@ -191,6 +193,24 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	for (j=0;j<TELY;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
+		//TRECHO ABAIXO PARA UM QUADRADO
+		/*if(i<TELX/2&&j<TELY/2)
+		PA[0][i][j]=1;
+		if(i<TELX/2&&j>TELY/2)
+		PB[0][i][j]=1;
+		if(i>TELX/2&&j<TELY/2)
+		PC[0][i][j]=1;
+		if(i>TELX/2&&j>TELY/2)
+		PD[0][i][j]=1;
+		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)){
+		PG[0][i][j]=1;
+		PA[0][i][j]=0;
+		PB[0][i][j]=0;
+		PC[0][i][j]=0;
+		PD[0][i][j]=0;
+		PE[0][i][j]=0;
+		PF[0][i][j]=0;}*/
+		//TRECHO ABAIXO PARA UM HEXÁGONO
 		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2))
 		PA[0][i][j]=1;
 		if(j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
@@ -269,7 +289,6 @@ for (int t=0;t<2;t++){
 
 for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
-printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
 P1<<<numBlocks,numThreads>>>(PcG,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda);
 P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,PcG,uc,dx,dy,lambda);
@@ -292,8 +311,9 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%500==0)
-	{//%5000
+if (tempo%1000==0)//%5000
+	{printf("\t%d, ",tempo);
+	A[1]=0;
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -309,27 +329,26 @@ if (tempo%500==0)
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
 		}
-	//printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
-	//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
+	//IMPRESSÃO NOS ARQUIVOS
 	fprintf(arq, "phi:t=%f\n",(tempo*dt));
 	for(j=0;j<TELY;j++)
 	{
 		for(i=0;i<TELX;i++)
 		{
-			//contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+PG[0][i][j]*PG[0][i][j];
-			fprintf(arq,"%d %d %f\n", i,j,0);
+			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
+			contorno[j][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+PG[0][i][j]*PG[0][i][j];//contorno[-j+TELY-1][i]
+			fprintf(arq,"%d %d %f\n", i,j,0); //ARQUIVO TEXTO
+			
+			if(PG[1][i][j]>0.9)
+			A[1]=A[1]+1;
+			
 		}
+		fwrite(contorno[j], sizeof(float), TELX, arq2);//ARQUIVO BINÁRIO
 	}
 	fprintf(arq,"\n\n");
-	
-	//IMPRESSÃO NO ARQUIVO BINÁRIO
-	for (int j = 0; j < TELY; j++) {
-		for(int i = 0; i < TELX; i++){
-			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[-j+TELY-1][i]=PA[0][i][j]*PA[0][i][j]+PB[0][i][j]*PB[0][i][j]+PC[0][i][j]*PC[0][i][j]+PD[0][i][j]*PD[0][i][j]+PE[0][i][j]*PE[0][i][j]+PF[0][i][j]*PF[0][i][j]+PG[0][i][j]*PG[0][i][j];
-		}
-		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
-	}
+	delA=(A[1]-A[0])/(dt*1000);
+	printf(" %f %d %d ",delA,A[0],A[1]);
+	A[0]=A[1];
 }
 //PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 

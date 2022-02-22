@@ -25,11 +25,11 @@
 #define kappa 1.0
 //PARÂMETROS DE GEOMETRIA
 #define compL 50	//comprimento do domínio era 500
-#define R 100		//raio inicial
+#define R 160		//raio inicial
 #define TELX 500	//total de elementos na direção x 1250
 #define TELY 500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 10	//tempo total da simulação 3750
+#define Ttot 200	//tempo total da simulação 3750
 #define dt 0.002		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
