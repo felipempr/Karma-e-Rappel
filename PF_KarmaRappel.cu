@@ -28,19 +28,13 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
 void cristal(float **cont, float ySim[]);
 void curvas(FILE *arquivo,FILE *arquivo2, float ySim[]);
-unsigned char* readBMP();
+void cond_inicial(unsigned char *data,float ***QA,float ***QB,float ***QC,float ***QG, float ***QD);
+void readBMP(unsigned char *data);
 
 
 int main(void)
 {
-
-//TRECHO RELATIVO A ABERTURA DA IMAGEM
-
-readBMP();
-
-//FIM DO TRECHO RELATIVO A IMAGEM
-
-
+printf("teste %d ",(11%9)/3);
 
 	int i;
 	int j;
@@ -57,6 +51,9 @@ readBMP();
 	float dx=(float)compL/(float)TELX;
 	float dy=(float)compL/(float)TELY;
 	//const float sigma=E/sqrt(2*W);
+
+	unsigned char* bmp; 
+	bmp=(unsigned char*)malloc(3*TELX*TELY*sizeof(unsigned char));
 	
 	//VARIÁVEIS DAS FASES LÍQUIDA, SÓLIDA E IMÓVEL(?)
 	float ***PA;
@@ -127,7 +124,6 @@ readBMP();
 		u[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<TELX;i++){
 			u[t][i]=(float*)malloc(TELY*sizeof(float));
-						
 		}
 	}
 	float ***X;
@@ -136,7 +132,6 @@ readBMP();
 		X[t]=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<TELX;i++){
 			X[t][i]=(float*)malloc(TELY*sizeof(float));
-						
 		}
 	}
 	
@@ -161,10 +156,7 @@ readBMP();
 	cudaMalloc((void **) &Xc, 2*TELX*TELY*sizeof(float));
 	float *deltac;
 	cudaMalloc((void **) &deltac, TELX*TELY*sizeof(float));
-
-
 	
-
 	//CÁLCULO DOS NÚMEROS DE FOURIER E BIOT
 	//float Fox=D*dt/(dx*dx);
 	//float Foy=D*dt/(dy*dy);
@@ -178,7 +170,6 @@ readBMP();
 	FILE *arqb;
 	FILE *arq2;
 	FILE *arq2b;
-	
 	
 printf("\ntelt=%d\n",telt);
 
@@ -203,10 +194,11 @@ inicializar(0,1,0,TELX,0,TELY,PF,0);
 inicializar(0,1,0,TELX,0,TELY,PG,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+//TRECHO ANTIGO FEITO COM GEOMETRIA ANALITICA
+/*for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	for (j=0;j<TELY;j++)//(j=tely/2-r;j<=tely/2+r;j++)
-	{
+	{*/
 		//TRECHO ABAIXO PARA UM QUADRADO
 		/*if(i<TELX/2&&j<TELY/2)
 		PA[0][i][j]=1;
@@ -224,8 +216,9 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PD[0][i][j]=0;
 		PE[0][i][j]=0;
 		PF[0][i][j]=0;}*/
+
 		//TRECHO ABAIXO PARA UM HEXÁGONO
-		if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2))
+		/*if(j>=(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&j<-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2))
 		PA[0][i][j]=1;
 		if(j<(sqrt(3)/3.0)*i+TELY/2-(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
 		PB[0][i][j]=1;
@@ -255,35 +248,12 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PF[0][i][j]=1;
 		}
 
-	}
-		/*//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
-		if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else if(i>((j-((9.0*(TELY-1))/4.0))/-((3.0*(TELY-1))/(TELX-1)))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}
-		else{
-		PI[0][i][j]=1;
-		PS[0][i][j]=0;
-		PL[0][i][j]=0;
-		}*/
-		
-		/*if(i<((TELX-1)/2)){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else{
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}*/
-}
+	};
+}*/
+readBMP(bmp);
+printf("bmp[0]=%d",(int)bmp[0]);
+cond_inicial(bmp,PA,PB,PC,PG,PD);		
+
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
 //COPIANDO VALORES DA CPU (HOST) PARA AS VARIÁVEIS DA GPU (DEVICE)
@@ -437,6 +407,7 @@ free(PF);
 free(PG);
 free(u);
 free(X);
+free(bmp);
 
 cudaFree(PcA);
 cudaFree(PcB);
@@ -579,9 +550,9 @@ int n1=0;
 		}
 	}
 }
-unsigned char* readBMP()
+void readBMP(unsigned char* data)
 {
-    int i;
+    int v;
     FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste.bmp", "rb");
 
     if(f == NULL)
@@ -591,33 +562,59 @@ unsigned char* readBMP()
     fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
 
     // extract image height and width from header
-    int width = *(int*)&info[18];
+    int size_of_header=*(int*)&info[14];
+	int width = *(int*)&info[18];
     int height = *(int*)&info[22];
+	int bits_per_pixel=*(int*)&info[28];
+	int number_of_colors=*(int*)&info[46];
+		
+	printf("largura:%d altura:%d\ntamanho do cabeçalho:%d\nbits por pixel:%d\nnumero de cores:%d\n",width, height,size_of_header,bits_per_pixel,number_of_colors);
+	
 /*
     cout << endl;
     cout << "  Name: " << filename << endl;
     cout << " Width: " << width << endl;
     cout << "Height: " << height << endl;
 	*/
-    int row_padded = (width*3 + 3) & (~3);
-    unsigned char* data = new unsigned char[row_padded];
-    unsigned char tmp;
-
-    for(int i = 0; i < height; i++)
+    int size = 3 * TELX * TELY; //era width*height
+    //unsigned char* data; 
+	//data=(unsigned char*)malloc(size*sizeof(unsigned char));
+	
+    // read the rest of the data at once
+    fread(data, sizeof(unsigned char), size, f); 
+	for(v = 0; v < size; v=v+3)
     {
-        fread(data, sizeof(unsigned char), row_padded, f);
-        for(int j = 0; j < width*3; j += 3)
-        {
-            // Convert (B, G, R) to (R, G, B)
-            tmp = data[j];
-            data[j] = data[j+2];
-            data[j+2] = tmp;
-
-            printf("R:%d G:%d B:%d\n",data[j],data[j+1],data[j+2]);
-			//cout << "R: "<< (int)data[j] << " G: " << (int)data[j+1]<< " B: " << (int)data[j+2]<< endl;
-        }
-    }
-
-    fclose(f);
-    return data;
+            // flip the order of every 3 bytes
+            int tmp = data[v];
+            data[v] = data[v+2];
+            data[v+2] = tmp;
+			
+			//printf("R:%d G:%d B:%d\n",(int)data[v],data[v+1],data[v+2]);
+	}
+	printf("R:%d G:%d B:%d\n",(int)data[0],(int)data[1],(int)data[2]);
+	printf("R:%d G:%d B:%d\n",(int)data[1497],(int)data[1498],(int)data[1499]);
+	fclose(f);
+}
+void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC,float ***QG, float ***QD)
+{
+	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
+		//printf("%d ",i);	
+		if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//amarelo  BGR
+		//printf("i=%d j=%d\n",(i/3)%TELX,i/(3*TELX));
+		QA[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		/*else if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto
+		QB[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==204&&(int)data[i+1]==72&&(int)data[i+2]==63){//azul
+		QC[(i/3)%TELX][i/(3*TELX)]=1;
+		}*/
+		else if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//vermelho else if(*(int*)(data+i)==36&&*(int*)(data+(i+1))==28&&*(int*)(data+(i+2))==237)
+		QD[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else{
+		QG[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+	}
+	printf("OKcond_inicial");
 }
