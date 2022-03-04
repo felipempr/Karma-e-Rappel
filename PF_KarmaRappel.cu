@@ -128,9 +128,9 @@ int main(void)
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("JohnsonPS","w");
+arq=fopen("JohnsonPSanal","w");
 arqb=fopen("JohnsonPSsim","w");
-arq2=fopen("JohnsonPSbin","wb");
+arq2=fopen("JohnsonPScont","wb");
 //arq=fopen("E_d08","w");//para binário "wb"
 //arq3=fopen("E_d08i","w");//para binário "wb"
 //arq2=fopen("DendritasParalE_d08","wb");
@@ -143,62 +143,31 @@ inicializar(0,1,0,TELX,0,TELY,PS,0);
 inicializar(0,1,0,TELX,0,TELY,PI,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-for(i=TELX/4;i<=3*TELX/4;i++)
+for(i=0;i<TELX;i++)
+	for(j=0;j<TELY;j++)
 	{
-		for(j=TELY/2-10;j<TELY/2;j++)
+	{
+		if(j>TELY/2.0&&j>i*TELY/(3.0*TELX)+(5.0*TELY)/12.0)
 		{
-			PI[0][i][j]=1;
-			PS[0][i][j]=0;
-			PL[0][i][j]=0;
+			PI[0][j][i]=1;
+			PS[0][j][i]=0;
+			PL[0][j][i]=0;
 		}
-		for(j=TELY/2;j<=TELY/2+R;j++)
+		else if(j<=TELY/2.0&&j<=-i*TELY/(3.0*TELX)+(7.0*TELY)/12.0)
 		{
-			if(((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)))
-			{
-				PI[0][i][j]=0;
-				PS[0][i][j]=1;
-				PL[0][i][j]=0;
-			}
+			PI[0][j][i]=0;
+			PS[0][j][i]=1;
+			PL[0][j][i]=0;
+		}
+		else
+		{
+			PI[0][j][i]=0;
+			PS[0][j][i]=0;
+			PL[0][j][i]=1;
 		}
 	}
-
-/*for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)	HEXAGONO
-{
-	for (j=0;j<(3*TELY/4);j++)//(j=tely/2-r;j<=tely/2+r;j++)
-	{
-		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
-		if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
-		//if(i<((j+((1.0*(TELY-1))/2.0))/(2.0*(TELY-1)/(TELX-1)))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else if(i>((j-((9.0*(TELY-1))/4.0))/-((3.0*(TELY-1))/(TELX-1)))){
-		//else if(i>((j-((3.0*(TELY-1))/2.0))/-((2.0*(TELY-1))/(TELX-1)))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}
-		else{
-		PI[0][i][j]=1;
-		PS[0][i][j]=0;
-		PL[0][i][j]=0;
-		}
-
 	}
 
-	for(j=(3*TELY/4);j<TELY;j++)
-		if(i<((TELX-1)/2)){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else{
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}
-}*/
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
 //COPIANDO VALORES DA CPU (HOST) PARA AS VARIÁVEIS DA GPU (DEVICE)
@@ -228,7 +197,7 @@ printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
 P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda,1);
 P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda,1);
-P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,0);
+P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,1);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -243,7 +212,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%500==0)
+if (tempo%50==0)
 	{//%5000
 		for (int t=0;t<2;t++)
 		{
@@ -279,10 +248,10 @@ if (tempo%500==0)
 }
 //PERTO DO FINAL O AVANÇO JÁ É ESTÁVEL PONTO ONDE EXTRAIO O CONTORNO SIMULADO
 
-//if (tempo==17500)
-	//{
-	//cristal(arqb, contorno, ySim);
-	//}
+if (tempo==17500)
+	{
+	cristal(arqb, contorno, ySim);
+	}
 //NO FINAL CALCULO A CURVA ANALÍTICA E COMPARO COM YSIM
 
 
@@ -293,7 +262,7 @@ atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
 atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 }
 
-//curvas(arq,arqb,ySim);
+curvas(arq,arqb,ySim);
 
 printf("lambda=%f\n",lambda);
 printf("d0=%f\n",(0.8839*E0/lambda));
@@ -414,7 +383,7 @@ float dif[TELX];
 			nf=n2;
 			af=a;
 			thetaf=theta;
-			printf("nf=%d n2=%d, a=%d af=%d, theta=%f reg=%f\n",nf,n2,a,af,theta*180/M_PI,reg);
+			printf("\n nf=%d n2=%d, a=%d af=%d, theta=%f reg=%f\n",nf,n2,a,af,theta*180/M_PI,reg);
 			}
 		printf(".");
 		}
