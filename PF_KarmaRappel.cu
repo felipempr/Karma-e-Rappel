@@ -28,7 +28,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
 void cristal(float **cont, float ySim[]);
 void curvas(FILE *arquivo,FILE *arquivo2, float ySim[]);
-void cond_inicial(unsigned char *data,float ***QA,float ***QB,float ***QC,float ***QG, float ***QD);
+void cond_inicial(unsigned char *data,float ***QA,float ***QB,float ***QC,float ***QG, float ***QD,float ***QE);
 void readBMP(unsigned char *data);
 
 
@@ -230,7 +230,7 @@ inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 		PC[0][i][j]=1;
 		if(j>=-(sqrt(3)/3.0)*i+TELY/2+(sqrt(3)/3.0)*(TELX/2)&&i<TELX/2)
 		PB[0][i][j]=1;
-		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)&&i>TELX/2){//&&i>TELX/2
+		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)){//&&i>TELX/2
 		PG[0][i][j]=1;
 		PA[0][i][j]=0;
 		PB[0][i][j]=0;
@@ -238,21 +238,11 @@ inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 		PD[0][i][j]=0;
 		PE[0][i][j]=0;
 		PF[0][i][j]=0;}
-		if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R)&&i<=TELX/2){//&&i>TELX/2
-		PG[0][i][j]=0;
-		PA[0][i][j]=0;
-		PB[0][i][j]=0;
-		PC[0][i][j]=0;
-		PD[0][i][j]=0;
-		PE[0][i][j]=0;
-		PF[0][i][j]=1;
-		}
-
 	};
 }*/
 readBMP(bmp);
 printf("bmp[0]=%d",(int)bmp[0]);
-cond_inicial(bmp,PA,PB,PC,PG,PD);		
+cond_inicial(bmp,PA,PB,PC,PG,PD,PE);		
 
 //printf(" PS[1][1]=%f PS[3][6]=%f PS[6][6]=%f\n", PS[0][1][1], PS[0][3][6], PS[0][6][6]);
 
@@ -305,7 +295,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-if (tempo%50==0)//%5000
+if (tempo%250==0)//%5000
 	{printf("\t%d, ",tempo);
 	A[1]=0;
 		for (int t=0;t<2;t++)
@@ -341,7 +331,7 @@ if (tempo%50==0)//%5000
 	}
 	fprintf(arq,"\n\n");
 	//delA=(A[1]-A[0])/(dt*1000);
-	fprintf(arq2b,"%f %d\n",(tempo*dt),A[1]);
+	fprintf(arq2b,"%f %f\n",(tempo*dt),(A[1]*dx*dy));
 	//fwrite(&A[1], sizeof(int),1, arq2b);
 	A[0]=A[1];
 }
@@ -595,22 +585,25 @@ void readBMP(unsigned char* data)
 	printf("R:%d G:%d B:%d\n",(int)data[1497],(int)data[1498],(int)data[1499]);
 	fclose(f);
 }
-void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC,float ***QG, float ***QD)
+void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC,float ***QG, float ***QD, float ***QE)
 {
 	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
 		//printf("%d ",i);	
-		if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//amarelo  BGR
+		if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto  BGR
 		//printf("i=%d j=%d\n",(i/3)%TELX,i/(3*TELX));
 		QA[0][(i/3)%TELX][i/(3*TELX)]=1;
 		}
-		/*else if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto
+		else if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
 		QB[0][(i/3)%TELX][i/(3*TELX)]=1;
 		}
-		else if((int)data[i]==204&&(int)data[i+1]==72&&(int)data[i+2]==63){//azul
-		QC[(i/3)%TELX][i/(3*TELX)]=1;
-		}*/
-		else if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//vermelho else if(*(int*)(data+i)==36&&*(int*)(data+(i+1))==28&&*(int*)(data+(i+2))==237)
+		else if((int)data[i]==63&&(int)data[i+1]==72&&(int)data[i+2]==204){//azul
+		QC[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==255&&(int)data[i+1]==242&&(int)data[i+2]==0){//amarelo else if(*(int*)(data+i)==36&&*(int*)(data+(i+1))==28&&*(int*)(data+(i+2))==237)
 		QD[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==34&&(int)data[i+1]==177&&(int)data[i+2]==76){//verde
+		QE[0][(i/3)%TELX][i/(3*TELX)]=1;
 		}
 		else{
 		QG[0][(i/3)%TELX][i/(3*TELX)]=1;

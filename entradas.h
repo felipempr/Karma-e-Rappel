@@ -29,7 +29,7 @@
 #define TELX 500	//total de elementos na direção x 1250
 #define TELY 500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 1	//tempo total da simulação 3750
+#define Ttot 50	//tempo total da simulação 3750
 #define dt 0.002		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido
