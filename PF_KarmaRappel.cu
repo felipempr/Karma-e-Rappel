@@ -207,9 +207,9 @@ for(tempo=0;tempo<=(telt/2);tempo++)//tempo<=telt
 {
 printf("%d, ",tempo);
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,lambda,1);
+P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,lambda,1);
+P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,lambda,1);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);
@@ -253,7 +253,7 @@ if (tempo%5000==0)
 	for (int j = 0; j < TELY; j++) {
 		for(int i = 0; i < TELX; i++){
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[-j+TELY-1][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];
+			contorno[j][i]=PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j]+PL[0][i][j]*PL[0][i][j];//contorno[-j+TELY-1][i]
 		}
 		fwrite(contorno[j], sizeof(float), TELX, arq2);//contorno[j]
 	}
@@ -422,7 +422,7 @@ int j=0;
 int n1=0;
 
 	//OBTENHO A CURVA SIMULADA
-	for(int i=0;i<TELX;i++)
+	for(int i=TELX-1;i>=0;i--)
 	{
 		j=TELX/2;
 		do{
@@ -434,7 +434,7 @@ int n1=0;
 		FLAG=false;
 		}
 		if(j<(TELX/2)-5){
-		ySim[i-n1]=-j+TELY/2;
+		ySim[-i+n1]=-j+TELY/2;
 		//printf("n1=%d i=%d\n",n1,i);
 		//printf("ySim[%d]=%d\n",i-n1,-j+TELY/2);
 		//fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
