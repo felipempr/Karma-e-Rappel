@@ -274,13 +274,13 @@ for (int t=0;t<2;t++){
 for(tempo=0;tempo<=telt;tempo++)//tempo<=telt
 {
 //CÁLCULO DA VARIÁVEL DE FASE		
-P1<<<numBlocks,numThreads>>>(PcG,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,PcG,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcB,PcC,PcD,PcE,PcF,PcG,PcA,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcC,PcD,PcE,PcF,PcG,PcA,PcB,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcD,PcE,PcF,PcG,PcA,PcB,PcC,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcE,PcF,PcG,PcA,PcB,PcC,PcD,uc,dx,dy,lambda);
-P1<<<numBlocks,numThreads>>>(PcF,PcG,PcA,PcB,PcC,PcD,PcE,uc,dx,dy,lambda);
+P1<<<numBlocks,numThreads>>>(PcG,PcA,PcB,PcC,PcD,PcE,PcF,uc,dx,dy,lambda,0.01);
+P1<<<numBlocks,numThreads>>>(PcA,PcB,PcC,PcD,PcE,PcF,PcG,uc,dx,dy,lambda,1.0);
+P1<<<numBlocks,numThreads>>>(PcB,PcC,PcD,PcE,PcF,PcG,PcA,uc,dx,dy,lambda,1.0);
+P1<<<numBlocks,numThreads>>>(PcC,PcD,PcE,PcF,PcG,PcA,PcB,uc,dx,dy,lambda,1.0);
+P1<<<numBlocks,numThreads>>>(PcD,PcE,PcF,PcG,PcA,PcB,PcC,uc,dx,dy,lambda,1.0);
+P1<<<numBlocks,numThreads>>>(PcE,PcF,PcG,PcA,PcB,PcC,PcD,uc,dx,dy,lambda,1.0);
+P1<<<numBlocks,numThreads>>>(PcF,PcG,PcA,PcB,PcC,PcD,PcE,uc,dx,dy,lambda,1.0);
 cudaDeviceSynchronize();
 //CALCULO DO CAMPO DE TEMPERATURAS
 //Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, Pc, deltac, Fox, Foy);

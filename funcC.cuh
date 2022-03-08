@@ -4,8 +4,8 @@
 //__device__ void deltaf(float *delta, float *X);
 __device__ void atualiza(float *Q, float *K);
 __global__ void atualizaTudo(float *Q, float *K);
-__global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, float *u, float dx, float dy, float lambda);
-__device__ float L(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, int idx);
+__global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, float *u, float dx, float dy, float lambda, float mobi);
+__device__ float L(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, int idx, float mobi);
 //__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy);
 /*__device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy);
 __device__ float tau(float *P, int idx, float dx, float dy);
@@ -121,7 +121,7 @@ __device__ void atualiza(float *Q, float *K)
 }
 
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
-__global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, float *u, float dx, float dy, float lambda)
+__global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, float *u, float dx, float dy, float lambda, float mobi)
 {
 	float nabla2;
 
@@ -159,15 +159,15 @@ __global__ void P1(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *
 		nabla2=((P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx))+((P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy));
 		}
 
-	P[idx+TELX*TELY]=P[idx]+(dt*-L(P,Pa,Pb,Pc,Pd,Pe,Pf,idx))*(-alfa*P[idx]+beta*powf(P[idx],3.0)+2.0*gamma*P[idx]*(powf(Pa[idx],2.0)+powf(Pb[idx],2.0)+powf(Pc[idx],2.0)+powf(Pd[idx],2.0)+powf(Pe[idx],2.0)+powf(Pf[idx],2.0))-kappa*nabla2);
+	P[idx+TELX*TELY]=P[idx]+(dt*-L(P,Pa,Pb,Pc,Pd,Pe,Pf,idx,mobi))*(-alfa*P[idx]+beta*powf(P[idx],3.0)+2.0*gamma*P[idx]*(powf(Pa[idx],2.0)+powf(Pb[idx],2.0)+powf(Pc[idx],2.0)+powf(Pd[idx],2.0)+powf(Pe[idx],2.0)+powf(Pf[idx],2.0))-kappa*nabla2);
 	}
 }
-__device__ float L(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, int idx)
+__device__ float L(float *P, float *Pa, float *Pb, float *Pc, float *Pd, float *Pe, float *Pf, int idx, float mobi)
 {
 float mobilidade;
 float somaEta;
 somaEta=P[idx]+Pa[idx]+Pb[idx]+Pc[idx]+Pd[idx]+Pe[idx]+Pf[idx];
-mobilidade=LGB-exp(-phiW*pow((somaEta-phiMin),2.0))*(LGB-LTJ);
+mobilidade=mobi*(LGB-exp(-phiW*pow((somaEta-phiMin),2.0))*(LGB-LTJ));
 return mobilidade;
 }
 /*__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy)
