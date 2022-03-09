@@ -9,7 +9,7 @@
 #define h 3000
 #define E0 1.0//W0 normalmente 1.0
 #define TAU0 1.0
-#define D 4.4312
+#define D 4.32
 #define a1 0.8839
 #define a2 0.6267
 //PARÂMETROS DE GEOMETRIA
@@ -18,7 +18,7 @@
 #define TELX 1250	//total de elementos na direção x 1250
 #define TELY 1250	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 938	//tempo total da simulação 3750
+#define Ttot 10	//tempo total da simulação 3750 depois 938
 #define dt 0.02		//tamanho do intervalo entre os passos de tempo
 //PARÂMETROS DE SIMULAÇÃO
 #define SOLIDO 1	//valor da variável de fase no estado sólido

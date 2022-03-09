@@ -127,40 +127,27 @@ printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("E_d08","w");//para binário "wb"
-arq3=fopen("E_d08i","w");//para binário "wb"
-arq2=fopen("DendritasParalE_d08","wb");
+arq=fopen("Wd0_2_posy","w");//para binário "wb"
+arq3=fopen("Wd0_2_posx","w");//para binário "wb"
+arq2=fopen("DendritaKR_Wd0_2_Delta055","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
 inicializar(0,1,0,TELX,0,TELY,u,-Ui);
-inicializar(0,1,0,TELX,0,TELY,P,1);
+inicializar(0,1,0,TELX,0,TELY,P,0);
 //inicializar(0,1,0,TELX,0,TELY,PL,1);
 //inicializar(0,1,0,TELX,0,TELY,PS,0);
 //inicializar(0,1,0,TELX,0,TELY,PI,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-/*for (i=0;i<=compL;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+for (i=0;i<=TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<compL/2;j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<TELX;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
-		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
-		PI[0][i][j]=1;
-		PS[0][i][j]=0;
-		PL[0][i][j]=0;
+		if((pow((i),2.0)+pow((j),2.0))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
+		P[0][i][j]=1;
 	}
-	for(j=compL/2;j<=compL;j++)
-		if(i<(compL/2)){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else{
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}
-}*/
+}
 
 
 //printf(" P[5][5]=%f P[30][30]=%f\n", P[1][5][5], P[1][30][30]);
@@ -205,7 +192,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%625==0){
+	if (tempo%50==0){
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -223,8 +210,9 @@ cudaDeviceSynchronize();
 	printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
 	printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
 
+	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
 		fprintf(arq,"phi:t=%.8f\n",(tempo*dt));
-	/*for(int j=0;j<TELY-1;j++){
+	for(int j=0;j<TELY-1;j++){
 		if (P[1][0][j]*P[1][0][j+1]<0)
 		fprintf(arq,"%d %f %d %f\n",j, P[1][0][j],j+1,P[1][0][j+1]);
 		}
@@ -236,7 +224,8 @@ cudaDeviceSynchronize();
 		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
 		}
 		fprintf(arq3,"\n\n");
-*/
+		
+//IMPRESSÃO DO CAMPO DE FASES
 	for (int i = 0; i < TELX; i++) {
 		fwrite(P[1][i], sizeof(float), TELY, arq2);
 		//fwrite(X[1][i], sizeof(float), TELY, arq2);
