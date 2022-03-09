@@ -127,25 +127,25 @@ printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("Wd0_2_posy","w");//para binário "wb"
-arq3=fopen("Wd0_2_posx","w");//para binário "wb"
-arq2=fopen("DendritaKR_Wd0_2_Delta055","wb");
+arq=fopen("Wd0_9_posy","w");//para binário "wb"
+arq3=fopen("Wd0_9_posx","w");//para binário "wb"
+arq2=fopen("DendritaKR_Wd0_9_Delta055","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
 inicializar(0,1,0,TELX,0,TELY,u,-Ui);
-inicializar(0,1,0,TELX,0,TELY,P,0);
+inicializar(0,1,0,TELX,0,TELY,P,LIQUIDO);
 //inicializar(0,1,0,TELX,0,TELY,PL,1);
 //inicializar(0,1,0,TELX,0,TELY,PS,0);
 //inicializar(0,1,0,TELX,0,TELY,PI,0);
 inicializar(0,2,0,TELX,0,TELY,X,-Ui);
 
-for (i=0;i<=TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	for (j=0;j<TELX;j++)//(j=tely/2-r;j<=tely/2+r;j++)
+	for (j=0;j<R;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
 		if((pow((i),2.0)+pow((j),2.0))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
-		P[0][i][j]=1;
+		P[0][i][j]=SOLIDO;
 	}
 }
 
@@ -192,7 +192,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%50==0){
+	if (tempo%5000==0){
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
