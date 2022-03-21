@@ -129,7 +129,7 @@ printf("\ntelt=%d\n",telt);
 
 arq=fopen("Wd0_9_posy","w");//para binário "wb"
 arq3=fopen("Wd0_9_posx","w");//para binário "wb"
-arq2=fopen("DendritaKR_Wd0_9_Delta055","wb");
+arq2=fopen("FIG8a","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
@@ -192,7 +192,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%5000==0){
+	if (tempo%28125==0){
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
@@ -205,12 +205,12 @@ cudaDeviceSynchronize();
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
 			//printf(" P0[5][5]=%f P1[30][30]=%f\n", P[t][5][5], P[t][30][30]);
-			printf(" X0[5][5]=%f X1[30][30]=%f\n", X[t][5][5], X[t][30][30]);
+			//printf(" X0[5][5]=%f X1[30][30]=%f\n", X[t][5][5], X[t][30][30]);
 		}
 	printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
 	printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
 
-	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
+/*	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
 		fprintf(arq,"phi:t=%.8f\n",(tempo*dt));
 	for(int j=0;j<TELY-1;j++){
 		if (P[1][0][j]*P[1][0][j+1]<0)
@@ -224,7 +224,7 @@ cudaDeviceSynchronize();
 		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
 		}
 		fprintf(arq3,"\n\n");
-		
+*/		
 //IMPRESSÃO DO CAMPO DE FASES
 	for (int i = 0; i < TELX; i++) {
 		fwrite(P[1][i], sizeof(float), TELY, arq2);
