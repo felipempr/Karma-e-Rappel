@@ -129,7 +129,7 @@ printf("\ntelt=%d\n",telt);
 
 arq=fopen("Wd0_9_posy","w");//para binário "wb"
 arq3=fopen("Wd0_9_posx","w");//para binário "wb"
-arq2=fopen("FIG8a","wb");
+arq2=fopen("FIG8b","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
@@ -192,7 +192,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%28125==0){
+	if (tempo%3750==0){
 		for (int t=0;t<2;t++)
 		{
 			for (int i=0;i<TELX;i++)
