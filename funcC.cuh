@@ -7,7 +7,6 @@ __global__ void atualizaTudo(float *Q, float *K);
 __global__ void P1(float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConst1, float gammaConst2, float gammaConst3, float gamma123);
 __device__ float rhs(float *Pb, float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gamma123);
 __device__ float DaFuncDphi(float *Pb,float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2);
-__device__ float DaFuncDNphi(float *Pb,float *Pc, int idx, float gammaConst1, float gammaConst2);
 __device__ float DaFuncDNphiDx(float *Pb,float *Pc, int idx, float dx, float gammaConst1, float gammaConst2);
 __device__ float DaFuncDNphiDy(float *Pb,float *Pc, int idx, float dy, float gammaConst1, float gammaConst2);
 __device__ float DwDphi(float*Pb,float *Pc, int idx, float gammaConst1, float gammaConst2, float gamma123);
@@ -35,6 +34,8 @@ __device__ float Expx(float *P,int idx,float dx, float dy);
 __device__ float Eypy(float *P,int idx,float dx, float dy);
 */
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
+void readBMP(unsigned char* data);
+void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC);//,float ***QG, float ***QD, float ***QE);
 
 //FUNÇÕES DE SUPORTE
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
@@ -51,6 +52,80 @@ void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
 	}
 }
 
+void readBMP(unsigned char* data)
+{
+    int v;
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste.bmp", "rb");
+
+    if(f == NULL)
+        throw "Argument Exception";
+
+    unsigned char info[54];
+    fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
+
+    // extract image height and width from header
+    int size_of_header=*(int*)&info[14];
+	int width = *(int*)&info[18];
+    int height = *(int*)&info[22];
+	int bits_per_pixel=*(int*)&info[28];
+	int number_of_colors=*(int*)&info[46];
+		
+	printf("largura:%d altura:%d\ntamanho do cabeçalho:%d\nbits por pixel:%d\nnumero de cores:%d\n",width, height,size_of_header,bits_per_pixel,number_of_colors);
+	
+/*
+    cout << endl;
+    cout << "  Name: " << filename << endl;
+    cout << " Width: " << width << endl;
+    cout << "Height: " << height << endl;
+	*/
+    int size = 3 * TELX * TELY; //era width*height
+    //unsigned char* data; 
+	//data=(unsigned char*)malloc(size*sizeof(unsigned char));
+	
+    // read the rest of the data at once
+    fread(data, sizeof(unsigned char), size, f); 
+	for(v = 0; v < size; v=v+3)
+    {
+            // flip the order of every 3 bytes
+            int tmp = data[v];
+            data[v] = data[v+2];
+            data[v+2] = tmp;
+			
+			//printf("R:%d G:%d B:%d\n",(int)data[v],data[v+1],data[v+2]);
+	}
+	printf("R:%d G:%d B:%d\n",(int)data[0],(int)data[1],(int)data[2]);
+	printf("R:%d G:%d B:%d\n",(int)data[1497],(int)data[1498],(int)data[1499]);
+	fclose(f);
+}
+
+void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC)//,float ***QG, float ***QD, float ***QE)
+{
+	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
+		//printf("%d ",i);	
+		if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto  BGR
+		//printf("i=%d j=%d\n",(i/3)%TELX,i/(3*TELX));
+		QA[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
+		}
+		else if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
+		QB[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
+		}
+		/*else if((int)data[i]==63&&(int)data[i+1]==72&&(int)data[i+2]==204){//azul
+		QC[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==255&&(int)data[i+1]==242&&(int)data[i+2]==0){//amarelo else if(*(int*)(data+i)==36&&*(int*)(data+(i+1))==28&&*(int*)(data+(i+2))==237)
+		QD[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==34&&(int)data[i+1]==177&&(int)data[i+2]==76){//verde
+		QE[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}*/
+		else{
+		QC[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
+		}
+	}
+	printf("OKcond_inicial");
+}
+
+//FUNÇÕES PRINCIPAIS
 extern __shared__ float cache[];
 	
 __device__ void deltaf(float *delta, float *X)
@@ -255,51 +330,34 @@ return X1;
 __device__ float rhs(float *Pb, float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gamma123)
 {
 float rhs;
-rhs=EPSILON*((DaFuncDNphiDx(Pb,Pc,idx,dx,gammaConst1,gammaConst2)+DaFuncDNphiDy(Pb,Pc,idx,dy,gammaConst1,gammaConst2))-DaFuncDphi(Pb,Pc,idx,dx,dy,gammaConst1,gammaConst2))-(1/EPSILON)*DwDphi(Pb,Pc,idx,gammaConst1,gammaConst2,gamma123);
+rhs=EPSILON*((DaFuncDNphiDx(Pb,Pc,idx,dx,gammaConst1,gammaConst2)+DaFuncDNphiDy(Pb,Pc,idx,dy,gammaConst1,gammaConst2))-DaFuncDphi(Pb,Pc,idx,dx,dy,gammaConst1,gammaConst2))-(1.0/EPSILON)*DwDphi(Pb,Pc,idx,gammaConst1,gammaConst2,gamma123);
 return rhs;
 }
 //FUNCAO QUE CALCULA DaFunc/Dphi NA GPU
 __device__ float DaFuncDphi(float *Pb,float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2)//gammaConst varia conforme as fases em contato, usar a chamada da função para inserir a partir de valores definidos em entradas.h
 {
 float DaFuncDphi;
-DaFuncDphi=gammaConst1*powf(fabs((Px(Pb,idx,dx)+Py(Pb,idx,dy))),2)+gammaConst2*powf(fabs((Px(Pc,idx,dx)+Py(Pc,idx,dy))),2);
+DaFuncDphi=gammaConst1*powf((Px(Pb,idx,dx)+Py(Pb,idx,dy)),2.0)+gammaConst2*powf((Px(Pc,idx,dx)+Py(Pc,idx,dy)),2.0);
 return DaFuncDphi;
-}
-//FUNCAO QUE CALCULA DaFunc/DNphi NA GPU
-__device__ float DaFuncDNphi(float *Pb,float *Pc, int idx, float gammaConst1, float gammaConst2)//gammaConst varia conforme as fases em contato, usar a chamada da função para inserir a partir de valores definidos em entradas.h
-{
-float DaFuncDNphi;
-DaFuncDNphi=gammaConst1*powf(fabs(Pb[idx]),2)+gammaConst2*powf(fabs(Pc[idx]),2);
-return DaFuncDNphi;
 }
 //FUNÇÕES PARA CALCULAR DIVERGENTE DE DaFunc/DNphi
 __device__ float DaFuncDNphiDx(float *Pb,float *Pc, int idx, float dx, float gammaConst1, float gammaConst2)
 {
 float nablax;
-if(idx%TELX==0)
-nablax=(DaFuncDNphi(Pb,Pc,idx+1,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx+1,gammaConst1,gammaConst2))/(2.0*dx);
-else if((idx+1)%TELX==0)
-nablax=(DaFuncDNphi(Pb,Pc,idx-1,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx-1,gammaConst1,gammaConst2))/(2.0*dx);
-else
-nablax=(DaFuncDNphi(Pb,Pc,idx+1,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx-1,gammaConst1,gammaConst2))/(2.0*dx);
+nablax=gammaConst1*2.0*Px(Pb,idx,dx)*Pb[idx]+gammaConst2*2.0*Px(Pc,idx,dx)*Pc[idx];
 return nablax;
 }
 __device__ float DaFuncDNphiDy(float *Pb,float *Pc, int idx, float dy, float gammaConst1, float gammaConst2)
 {
 float nablay;
-if(idx>=0&&idx<TELX)
-nablay=(DaFuncDNphi(Pb,Pc,idx+TELX,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx+TELX,gammaConst1,gammaConst2))/(2.0*dy);
-else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
-nablay=(DaFuncDNphi(Pb,Pc,idx-TELX,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx-TELX,gammaConst1,gammaConst2))/(2.0*dy);
-else
-nablay=(DaFuncDNphi(Pb,Pc,idx+TELX,gammaConst1,gammaConst2)-DaFuncDNphi(Pb,Pc,idx-TELX,gammaConst1,gammaConst2))/(2.0*dy);
+nablay=gammaConst1*2.0*Py(Pb,idx,dy)*Pb[idx]+gammaConst2*2.0*Py(Pc,idx,dy)*Pc[idx];
 return nablay;
 }
 //FUNÇÃO QUE CALCULA DwDphi NA GPU
 __device__ float DwDphi(float*Pb,float *Pc, int idx, float gammaConst1, float gammaConst2, float gamma123)
 {
 float DwDphi;
-DwDphi=(16.0/powf(M_PI,2))*(gammaConst1*Pb[idx]+gammaConst2*Pc[idx]+gamma123*Pb[idx]*Pc[idx]);
+DwDphi=(16.0/powf(M_PI,2))*(gammaConst1*Pb[idx]+gammaConst2*Pc[idx])+gamma123*Pb[idx]*Pc[idx];
 return DwDphi;
 }
 //FUNÇÃO QUE CALCULA LAMBDA NA GPU

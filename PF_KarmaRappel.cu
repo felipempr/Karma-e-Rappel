@@ -37,6 +37,9 @@ int main(void)
 	int telt=Ttot/dt;
 	float dx=(float)compL/(float)TELX;
 	float dy=(float)compL/(float)TELY;
+
+	unsigned char* bmp; 
+	bmp=(unsigned char*)malloc(3*TELX*TELY*sizeof(unsigned char));
 		
 	float ***PL;
 	PL=(float***)malloc(2*sizeof(float**));
@@ -80,6 +83,12 @@ int main(void)
 						
 		}
 	}*/
+
+	float **contorno;
+	contorno=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			contorno[i]=(float*)malloc(TELY*sizeof(float));
+	}
 	
 	float *PcL;	
 	cudaMalloc((void **) &PcL, 2*TELX*TELY*sizeof(float));
@@ -108,20 +117,19 @@ int main(void)
 	//ABERTURA DE ARQUIVOS EXTERNOS
 	FILE *arq;
 	FILE *arq2;
-	FILE *arq3;
 	arq=fopen("Nestler1","w");//para binário "wb"
-	arq2=fopen("Nestler2","w");//para binário "wb"
-	arq3=fopen("Nestler3","wb");
-
+	arq2=fopen("Nestler2","wb");//para binário "wb"
+	
 //INSERINDO VALOR INICIAL NAS MATRIZES
 //inicializar(0,1,0,TELX,0,TELY,u,-Ui);
 //inicializar(0,2,0,TELX,0,TELY,X,-Ui);
-inicializar(0,1,0,TELX,0,TELY,PL,1);
-inicializar(0,1,0,TELX,0,TELY,PS,0);
-inicializar(0,1,0,TELX,0,TELY,PI,0);
+inicializar(0,1,0,TELX,0,TELY,PL,N_EXISTE);
+inicializar(0,1,0,TELX,0,TELY,PS,N_EXISTE);
+inicializar(0,1,0,TELX,0,TELY,PI,N_EXISTE);
 
-
-for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+readBMP(bmp);
+cond_inicial(bmp,PL,PS,PI);
+/*for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	for (j=0;j<R;j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
@@ -129,7 +137,7 @@ for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PS[0][i][j]=SOLIDO;
 	}
 }
-
+*/
 //COPIANDO VARIÁVEIS PARA A GPU
 for(int t=0;t<2;t++)
 {
@@ -168,7 +176,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%3750==0)
+	if (tempo%10==0)
 	{
 		
 		//COPIANDO VARIÁVEIS DA GPU
@@ -183,9 +191,24 @@ for(tempo=0;tempo<=telt;tempo++)
 			//cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
 		}
+	
+	fprintf(arq, "phi:t=%f\n",(tempo*dt));
+	for(j=0;j<TELY;j++)
+	{
+		for(i=0;i<TELX;i++)
+		{
+			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
+			contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
+			fprintf(arq,"%d %d %f\n", i,j,contorno[j][i]); //ARQUIVO TEXTO
+		}
+		fwrite(contorno[j], sizeof(float), TELX, arq2);//ARQUIVO BINÁRIO
+	}
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
 		
-		//printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
+		printf("\n PS[250][250]=%f PS[30][30]=%f\n", PS[0][250][250], PS[0][30][30]);
+		printf(" PI[250][250]=%f PI[30][30]=%f\n", PI[0][250][250], PI[0][30][30]);
+		printf(" PL[250][250]=%f PL[30][30]=%f\n", PL[0][250][250], PL[0][30][30]);
+		printf(" contorno=%f\n", contorno[250][250]);
 		//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
 
 /*	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
@@ -204,12 +227,6 @@ for(tempo=0;tempo<=telt;tempo++)
 		fprintf(arq3,"\n\n");
 */		
 
-	//IMPRESSÃO DO CAMPO DE FASES
-		for (int i = 0; i < TELX; i++)
-		{
-			fwrite(PS[1][i], sizeof(float), TELY, arq2);
-			//fwrite(X[1][i], sizeof(float), TELY, arq2);//OPÇÃO DE IMPRIMIR CAMPO DE TEMPERATURAS 
-		}
 	}
 
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
@@ -227,7 +244,6 @@ atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 fclose(arq);
 fclose(arq2);
-fclose(arq3);
 
 for(int t=0;t<2;t++)
 {
