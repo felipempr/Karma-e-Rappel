@@ -5,13 +5,23 @@
 /************************************************************************************************************************/
 
 //CONSTANTES
-#define constK 0.01
-#define h 3000
-#define E0 1.0//W0 normalmente 1.0
-#define TAU0 1.0
-#define D 3.0
-#define a1 0.8839
-#define a2 0.6267
+#define M_PI 3.14159265358979323846
+//#define constK 0.01
+//#define h 3000
+//#define E0 1.0//W0 normalmente 1.0
+//#define TAU0 1.0
+//#define D 3.0
+//#define a1 0.8839
+//#define a2 0.6267
+#define N_FASES 3
+
+#define GAMMA1 1
+#define GAMMA2 1
+#define GAMMA3 1
+#define GAMMA123 1
+
+#define TAU 1
+#define EPSILON 1
 //PARÂMETROS DE GEOMETRIA
 #define compL 500	//comprimento do domínio x/d0=902
 #define R 15		//raio inicial
