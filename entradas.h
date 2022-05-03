@@ -13,23 +13,23 @@
 //#define D 3.0
 //#define a1 0.8839
 //#define a2 0.6267
-#define N_FASES 3.0
 
-#define GAMMA1 0.25	
-#define GAMMA2 0.25
-#define GAMMA3 0.25
-#define GAMMA123 3.0
+#define GAMMAAB 0.25	
+#define GAMMAAC 0.25
+#define GAMMABC 0.25
+#define GAMMAABC 3.0
 
 #define TAU 1.0
 #define EPSILON 3.0
+#define M 1.0
 //PARÂMETROS DE GEOMETRIA
 #define compL 250	//comprimento do domínio x/d0=902
 #define R 15		//raio inicial
 #define TELX 1000	//total de elementos na direção x 1250
 #define TELY 1000	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 10	//tempo total da simulação 3750 depois 938
-#define dt 0.02		//tamanho do intervalo entre os passos de tempo 0.02
+#define Ttot 10000	//tempo total da simulação 3750 depois 938
+#define dt 0.05		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define EXISTE 1	//valor da variável de fase no estado sólido
 #define N_EXISTE 0	//valor da variável de fase no estado líquido

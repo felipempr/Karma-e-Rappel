@@ -4,24 +4,23 @@
 //__device__ void deltaf(float *delta, float *X);
 __device__ void atualiza(float *Q, float *K);
 __global__ void atualizaTudo(float *Q, float *K);
-__global__ void P1(float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConst1, float gammaConst2, float gammaConst3, float gamma123);
-__device__ float rhs(float *Pb, float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gamma123);
-__device__ float DaFuncDphi(float *Pb,float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2);
-__device__ float DaFuncDNphiDx(float *Pb,float *Pc, int idx, float dx, float gammaConst1, float gammaConst2);
-__device__ float DaFuncDNphiDy(float *Pb,float *Pc, int idx, float dy, float gammaConst1, float gammaConst2);
-__device__ float DwDphi(float*Pb,float *Pc, int idx, float gammaConst1, float gammaConst2, float gamma123);
-__device__ float lambda(int n, float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gammaConst3, float gamma123);
+__global__ void P1(float *rhsex,float *lambex, float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC);
+__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
+__device__ float DaDphi(float *Pa, float *Pb,float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
+__device__ float divDaDNphi(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
+__device__ float DwDphi(float *Pa,float *Pb,float *Pc, int idx, float gammaConstAB, float gammaConstAC);
+__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC);
 //__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy);
 //__device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy);
 //__device__ float tau(float *P, int idx, float dx, float dy);
 //__device__ float E(float *P, int idx, float dx, float dy);
 __device__ float Px(float *P, int idx, float dx);
 __device__ float Py(float *P, int idx, float dy);
-/*
 __device__ float Pxx(float *P, int idx, float dx);
 __device__ float Pyy(float *P, int idx, float dy);
 __device__ float Pxy(float *P, int idx, float dx, float dy);
 __device__ float Pyx(float *P, int idx, float dx, float dy);
+/*
 __device__ float Epx(float *P, int idx, float dx, float dy);
 __device__ float Epy(float *P, int idx, float dx, float dy);
 __device__ float Ex(float *P, int idx, float dx, float dy);
@@ -102,11 +101,11 @@ void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC)//,fl
 {
 	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
 		//printf("%d ",i);	
-		if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto  BGR
+		if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
 		//printf("i=%d j=%d\n",(i/3)%TELX,i/(3*TELX));
 		QA[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
 		}
-		else if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
+		else if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto  BGR
 		QB[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
 		}
 		/*else if((int)data[i]==63&&(int)data[i+1]==72&&(int)data[i+2]==204){//azul
@@ -122,7 +121,6 @@ void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC)//,fl
 		QC[0][(i/3)%TELX][i/(3*TELX)]=EXISTE;
 		}
 	}
-	printf("OKcond_inicial");
 }
 
 //FUNÇÕES PRINCIPAIS
@@ -176,63 +174,24 @@ __device__ void atualiza(float *Q, float *K)
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 	Q[idx]=K[idx+TELX*TELY];
-}
-	//printf(" atu.");
+	}
 }
 
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
-__global__ void P1(float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConst1, float gammaConst2, float gammaConst3, float gamma123)
+__global__ void P1(float *rhsex,float *lambex, float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC)
 {
-	/*float I;
-	float II;
-	float III;
-
-	float Ef;
-	float Exf;
-	float Eyf;
-	float Epxf;
-	float Epyf;
-	float Expxf;
-	float Eypyf;
-	float Pxf;
-	float Pyf;
-	float Pxxf;
-	float Pyyf;
-	float Pxyf;
-	float tauf;
-	*/
-	//int idx=blockIdx.x * blockDim.x + threadIdx.x;
-	//if(idx<TELX*TELY){
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 
-		/*Ef = E(P, idx, dx, dy);
-		Exf = Ex(P, idx, dx, dy);
-		Eyf = Ey(P, idx, dx, dy);
-		Epxf = Epx(P, idx, dx, dy);
-		Epyf = Epy(P, idx, dx, dy);
-		Expxf = Expx(P, idx, dx, dy);
-		Eypyf = Eypy(P, idx, dx, dy);
-		Pxf = Px(P, idx, dx);
-		Pyf = Py(P, idx, dy);
-		Pxxf = Pxx(P, idx, dx);
-		Pyyf = Pyy(P, idx, dy);
-		Pxyf = Pxy(P, idx, dx, dy);
-		tauf = tau(P, idx, dx, dy);
-
-		I=powf(Ef, 2)*(Pxxf + Pyyf)+2.0*Ef*(Pxf*Exf+Pyf*Eyf);
-		II=2.0*Ef*Epxf*(Pxf*Pxxf+Pyf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epxf*Exf+Ef*Expxf);
-		III=2.0*Ef*Epyf*(Pyf*Pyyf+Pxf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epyf*Eyf+Ef*Eypyf);*/
-
-		//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
-
-		Pa[idx+TELX*TELY]=Pa[idx]+(dt/(TAU*EPSILON))*(rhs(Pb,Pc,idx,dx,dy,gammaConst1,gammaConst2,gamma123)-lambda(N_FASES,Pa,Pb,Pc,idx,dx,dy,gammaConst1,gammaConst2,gammaConst3,gamma123));
+	float rhsf=rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
+	float lambdaf=lambda(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC,gammaConstBC);
+	
+	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
+	Pa[idx+TELX*TELY]=Pa[idx]+(dt*M)*(rhsf+(1.0/3.0)*lambdaf);
 	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
-
-		//printf("P[5][5]=%f P[30][30]=%f\n", P[5 + 5 * TELX], P[30 + 30 * TELX]);
-		//printf("P1[5][5]=%f P1[30][30]=%f\n", P[5 + 5 * TELX + TELX*TELY], P[30 + 30 * TELX + TELX*TELY]);
-
+	*rhsex=rhsf;
+	*lambex=lambdaf;
 	}
 }
 
@@ -327,50 +286,102 @@ return X1;
 */
 
 //FUNCAO QUE CALCULA RHS NA GPU
-__device__ float rhs(float *Pb, float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gamma123)
+__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC)
 {
 float rhs;
-rhs=EPSILON*((DaFuncDNphiDx(Pb,Pc,idx,dx,gammaConst1,gammaConst2)+DaFuncDNphiDy(Pb,Pc,idx,dy,gammaConst1,gammaConst2))-DaFuncDphi(Pb,Pc,idx,dx,dy,gammaConst1,gammaConst2))-(1.0/EPSILON)*DwDphi(Pb,Pc,idx,gammaConst1,gammaConst2,gamma123);
+float divDaDNphif=divDaDNphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
+float DaDphif=DaDphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
+float DwDphif=DwDphi(Pa,Pb,Pc,idx,gammaConstAB,gammaConstAC);
+/*if(Pa[idx]==0)
+rhs=0;
+else*/
+rhs=(-divDaDNphif-DaDphif)-(1.0/2.0)*DwDphif;
 return rhs;
 }
 //FUNCAO QUE CALCULA DaFunc/Dphi NA GPU
-__device__ float DaFuncDphi(float *Pb,float *Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2)//gammaConst varia conforme as fases em contato, usar a chamada da função para inserir a partir de valores definidos em entradas.h
+__device__ float DaDphi(float *Pa, float *Pb,float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC)//gammaConst varia conforme as fases em contato, usar a chamada da função para inserir a partir de valores definidos em entradas.h
 {
-float DaFuncDphi;
-DaFuncDphi=gammaConst1*powf((Px(Pb,idx,dx)+Py(Pb,idx,dy)),2.0)+gammaConst2*powf((Px(Pc,idx,dx)+Py(Pc,idx,dy)),2.0);
-return DaFuncDphi;
+float DaDphi;
+float Pxa=Px(Pa,idx,dx);
+float Pxb=Px(Pb,idx,dx);
+float Pxc=Px(Pc,idx,dx);
+float Pya=Py(Pa,idx,dy);
+float Pyb=Py(Pb,idx,dy);
+float Pyc=Py(Pc,idx,dy);
+/*float NA=Px(Pa,idx,dx)+Py(Pa,idx,dy);
+float NB=Px(Pb,idx,dx)+Py(Pb,idx,dy);
+float NC=Px(Pc,idx,dx)+Py(Pc,idx,dy);*/
+
+DaDphi=gammaConstAB*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+gammaConstAC*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc));
+return DaDphi;
 }
-//FUNÇÕES PARA CALCULAR DIVERGENTE DE DaFunc/DNphi
-__device__ float DaFuncDNphiDx(float *Pb,float *Pc, int idx, float dx, float gammaConst1, float gammaConst2)
+//FUNÇÃO PARA CALCULAR GRADIENTE DE Da/DNphi
+__device__ float divDaDNphi(float *Pa,float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC)
 {
-float nablax;
-nablax=gammaConst1*2.0*Px(Pb,idx,dx)*Pb[idx]+gammaConst2*2.0*Px(Pc,idx,dx)*Pc[idx];
-return nablax;
-}
-__device__ float DaFuncDNphiDy(float *Pb,float *Pc, int idx, float dy, float gammaConst1, float gammaConst2)
-{
-float nablay;
-nablay=gammaConst1*2.0*Py(Pb,idx,dy)*Pb[idx]+gammaConst2*2.0*Py(Pc,idx,dy)*Pc[idx];
-return nablay;
+float divDaDNphi;
+
+float Pxa=Px(Pa,idx,dx);
+float Pxb=Px(Pb,idx,dx);
+float Pxc=Px(Pc,idx,dx);
+float Pya=Py(Pa,idx,dy);
+float Pyb=Py(Pb,idx,dy);
+float Pyc=Py(Pc,idx,dy);
+/*
+float NA=Px(Pa,idx,dx)+Py(Pa,idx,dy);
+float NB=Px(Pb,idx,dx)+Py(Pb,idx,dy);
+float NC=Px(Pc,idx,dx)+Py(Pc,idx,dy);
+*/
+float N2A=Pxx(Pa,idx,dx)+Pyy(Pa,idx,dy);
+float N2B=Pxx(Pb,idx,dx)+Pyy(Pb,idx,dy);
+float N2C=Pxx(Pc,idx,dx)+Pyy(Pc,idx,dy);
+float I=gammaConstAB*(Pb[idx]*Pxa*Pxb+Pb[idx]*Pya*Pyb+Pa[idx]*Pxb*Pxb+Pa[idx]*Pyb*Pyb+Pa[idx]*Pb[idx]*N2B-2*Pb[idx]*Pxb*Pxa-2*Pb[idx]*Pyb*Pya-Pb[idx]*Pb[idx]*N2A);
+float II=gammaConstAC*(Pc[idx]*Pxa*Pxc+Pc[idx]*Pya*Pyc+Pa[idx]*Pxc*Pxc+Pa[idx]*Pyc*Pyc+Pa[idx]*Pc[idx]*N2C-2*Pc[idx]*Pxc*Pxa-2*Pc[idx]*Pyc*Pya-Pc[idx]*Pc[idx]*N2A);
+divDaDNphi=(I+II);
+//divDaDNphi=2.0*gammaConstAB*(Pa[idx]*NA*NA+Pa[idx]*Pa[idx]*N2B-NA*(Pb[idx]*NA+Pa[idx]*NB)+Pa[idx]*Pb[idx]*N2A)+2.0*gammaConstAC*(Pa[idx]*NA*NA+Pa[idx]*Pa[idx]*N2C-NA*(Pc[idx]*NA+Pa[idx]*NC)+Pa[idx]*Pc[idx]*N2A);
+
+//gammaConstAB*Pb[idx]*(Px(Pb,idx,dx)+Py(Pb,idx,dy))+gammaConstAC*Pc[idx]*(Px(Pc,idx,dx)+Py(Pc,idx,dy));
+return divDaDNphi;
 }
 //FUNÇÃO QUE CALCULA DwDphi NA GPU
-__device__ float DwDphi(float*Pb,float *Pc, int idx, float gammaConst1, float gammaConst2, float gamma123)
+__device__ float DwDphi(float *Pa, float*Pb,float *Pc, int idx, float gammaConstAB, float gammaConstAC)
 {
 float DwDphi;
-DwDphi=(16.0/powf(M_PI,2))*(gammaConst1*Pb[idx]+gammaConst2*Pc[idx])+gamma123*Pb[idx]*Pc[idx];
+DwDphi=Pa[idx]*Pb[idx]*Pb[idx]+Pa[idx]*Pc[idx]*Pc[idx];
+//1.62*(gammaConstAB*Pb[idx]+gammaConstAC*Pc[idx])+gammaABC*Pb[idx]*Pc[idx];
 return DwDphi;
 }
 //FUNÇÃO QUE CALCULA LAMBDA NA GPU
-__device__ float lambda(int n, float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConst1, float gammaConst2, float gammaConst3, float gamma123)
+__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC)
 {
 float lambda;
-lambda=(1.0/n)*(rhs(Pb,Pc,idx,dx,dy,gammaConst2,gammaConst3,gamma123)+rhs(Pa,Pc,idx,dx,dy,gammaConst1,gammaConst3,gamma123)+rhs(Pa,Pb,idx,dx,dy,gammaConst2,gammaConst2,gamma123));
+
+//float divDaDNphif=divDaDNphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
+//float DaDphif=DaDphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
+
+
+//float DwDphifa=DwDphi(Pa,Pb,Pc,idx,gammaConstAB,gammaConstAC);
+//float DwDphifb=DwDphi(Pb,Pa,Pc,idx,gammaConstAB,gammaConstBC);
+//float DwDphifc=DwDphi(Pc,Pb,Pa,idx,gammaConstBC,gammaConstAC);
+/*if(Pa[idx]==1)
+lambda=0;
+
+if(Pb[idx]>0&&Pc[idx]<=0)
+lambda=0.5*rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC,gammaABC);
+if(Pb[idx]<=0&&Pc[idx]>0)
+lambda=0.5*rhs(Pc,Pa,Pb,idx,dx,dy,gammaConstAB,gammaConstBC,gammaABC);
+if(Pb[idx]>0&&Pc[idx]>0)
+lambda=(1.0/3.0)*(rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC,gammaABC)+rhs(Pc,Pa,Pb,idx,dx,dy,gammaConstAC,gammaConstBC,gammaABC));
+*/
+//else
+//lambda=(divDaDNphif+DaDphif)+(1.0/2.0)*(DwDphifa+DwDphifb+DwDphifc+powf(Pa[idx],3.0)+powf(Pb[idx],3.0)+powf(Pc[idx],3.0));
+lambda=-(rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC)+rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC)+rhs(Pc,Pb,Pa,idx,dx,dy,gammaConstBC,gammaConstAC));
 return lambda;
 }
 //FUNÇÕES QUE CALCULAM AS DERIVADAS DE P NA GPU
 __device__ float Px(float *P, int idx, float dx)
 {
 float Px;
+
 if(idx%TELX==0)
 Px=(P[idx+1]-P[idx+1])/(2.0*dx);
 else if((idx+1)%TELX==0)
@@ -392,7 +403,7 @@ Py=(P[idx+TELX]-P[idx-TELX])/(2.0*dy);
 return Py;
 }
 
-/*
+
 __device__ float Pxx(float *P, int idx, float dx)
 {
 float Pxx;
@@ -468,6 +479,7 @@ __device__ float Pyx(float *P, int idx, float dx, float dy)
 	Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);	
 	else//meio
 	Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
+	*/
 if (idx>=0&&idx<TELX){
 		if (idx==0)
 			Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
@@ -494,7 +506,7 @@ if (idx>=0&&idx<TELX){
 	}
 	return Pxy;
 }
-
+/*
 __device__ float Epx(float *P,int idx, float dx, float dy)
 {
 float Epx;

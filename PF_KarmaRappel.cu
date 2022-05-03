@@ -65,6 +65,11 @@ int main(void)
 			PI[t][i]=(float*)malloc(TELY*sizeof(float));
 		}
 	}
+
+	float *rhs;
+	rhs=(float*)malloc(sizeof(float));
+	float *lamb;
+	lamb=(float*)malloc(sizeof(float));
 	/*float ***u;
 	u=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
@@ -96,6 +101,11 @@ int main(void)
 	cudaMalloc((void **) &PcS, 2*TELX*TELY*sizeof(float));
 	float *PcI;	
 	cudaMalloc((void **) &PcI, 2*TELX*TELY*sizeof(float));
+	
+	float *crhs;	
+	cudaMalloc((void **) &crhs, sizeof(float));
+	float *clamb;	
+	cudaMalloc((void **) &clamb, sizeof(float));
 	/*
 	float *uc;	
 	cudaMalloc((void **) &uc, 2*TELX*TELY*sizeof(float));
@@ -128,7 +138,7 @@ inicializar(0,1,0,TELX,0,TELY,PS,N_EXISTE);
 inicializar(0,1,0,TELX,0,TELY,PI,N_EXISTE);
 
 readBMP(bmp);
-cond_inicial(bmp,PL,PS,PI);
+cond_inicial(bmp,PI,PL,PS);
 /*for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	for (j=0;j<R;j++)//(j=tely/2-r;j<=tely/2+r;j++)
@@ -150,16 +160,73 @@ for(int t=0;t<2;t++)
 	//cudaMemcpy(Xc+((t*TELX*TELY)+(i*TELX)), X[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	}
 }
-
+cudaMemcpy(crhs, rhs, sizeof(float), cudaMemcpyDeviceToHost);
+cudaMemcpy(clamb, lamb, sizeof(float), cudaMemcpyDeviceToHost);
 //LOOP PRINCIPAL
 for(tempo=0;tempo<=telt;tempo++)
 {
 	printf("%d, ",tempo);
 
 	//CÁLCULO DA VARIÁVEL DE FASE		
-	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,dx,dy,GAMMA1,GAMMA2,GAMMA3,GAMMA123);
-	P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,dx,dy,GAMMA2,GAMMA1,GAMMA3,GAMMA123);
-	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,dx,dy,GAMMA3,GAMMA2,GAMMA3,GAMMA123);
+	P1<<<numBlocks,numThreads>>>(crhs,clamb,PcL,PcI,PcS,dx,dy,GAMMAAC,GAMMAAB,GAMMABC);
+	P1<<<numBlocks,numThreads>>>(crhs,clamb,PcS,PcL,PcI,dx,dy,GAMMAAB,GAMMAAC,GAMMABC);
+	P1<<<numBlocks,numThreads>>>(crhs,clamb,PcI,PcL,PcS,dx,dy,GAMMABC,GAMMAAC,GAMMAAB);
+/*
+	for (int t=0;t<2;t++)
+		{
+			for (int i=0;i<TELX;i++)
+			{
+			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			
+			//cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			//cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			}
+		}
+		cudaMemcpy(rhs, crhs, sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(lamb, clamb, sizeof(float), cudaMemcpyDeviceToHost);
+	printf("PLrhs=%f",*rhs);
+	printf(" PLlamb=%f\n",*lamb);
+
+	P1<<<numBlocks,numThreads>>>(crhs,clamb,PcS,PcL,PcI,dx,dy,GAMMAAB,GAMMAAC,GAMMABC,GAMMAABC);
+	for (int t=0;t<2;t++)
+		{
+			for (int i=0;i<TELX;i++)
+			{
+			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			
+			//cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			//cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			}
+		}
+		cudaMemcpy(rhs, crhs, sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(lamb, clamb, sizeof(float), cudaMemcpyDeviceToHost);
+	printf("PSrhs=%f",*rhs);
+	printf(" PSlamb=%f\n",*lamb);
+
+	P1<<<numBlocks,numThreads>>>(crhs,clamb,PcI,PcL,PcS,dx,dy,GAMMABC,GAMMAAC,GAMMAAB,GAMMAABC);
+	for (int t=0;t<2;t++)
+		{
+			for (int i=0;i<TELX;i++)
+			{
+			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			
+			//cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			//cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			}
+		}
+		cudaMemcpy(rhs, crhs, sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(lamb, clamb, sizeof(float), cudaMemcpyDeviceToHost);
+	printf("PIrhs=%f",*rhs);
+	printf(" PIlamb=%f\n\n",*lamb);
+	
+	
+	*/			
 	cudaDeviceSynchronize();
 
 	//CALCULO DO CAMPO DE TEMPERATURAS
@@ -176,7 +243,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%10==0)
+	if (tempo%4000==0)
 	{
 		
 		//COPIANDO VARIÁVEIS DA GPU
@@ -184,14 +251,18 @@ for(tempo=0;tempo<=telt;tempo++)
 		{
 			for (int i=0;i<TELX;i++)
 			{
-			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
-			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(PI[t][i], PcI+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PL[t][i], PcL+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			
 			//cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			//cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
 		}
-	
+		cudaMemcpy(rhs, crhs, sizeof(float), cudaMemcpyDeviceToHost);
+		cudaMemcpy(lamb, clamb, sizeof(float), cudaMemcpyDeviceToHost);
+		printf("rhs=%f",*rhs);
+		printf(" lamb=%f",*lamb);
 	fprintf(arq, "phi:t=%f\n",(tempo*dt));
 	for(j=0;j<TELY;j++)
 	{
@@ -205,11 +276,13 @@ for(tempo=0;tempo<=telt;tempo++)
 	}
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
 		
-		printf("\n PS[250][250]=%f PS[30][30]=%f\n", PS[0][250][250], PS[0][30][30]);
-		printf(" PI[250][250]=%f PI[30][30]=%f\n", PI[0][250][250], PI[0][30][30]);
-		printf(" PL[250][250]=%f PL[30][30]=%f\n", PL[0][250][250], PL[0][30][30]);
-		printf(" contorno=%f\n", contorno[250][250]);
+		printf("\n PS[500][500]=%f PS[500][998]=%f PS[2][500]=%f\n",  PS[0][500][500], PS[0][500][998],PS[0][2][500]);
+		printf(" PI[500][500]=%f PI[500][998]=%f PI[2][500]=%f\n", PI[0][500][500], PI[0][500][998],PI[0][2][500]);
+		printf(" PL[500][500]=%f PL[500][998]=%f PL[2][500]=%f\n", PL[0][500][500], PL[0][500][998],PL[0][2][500]);
+		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
+		printf(" contorno=%f\n", contorno[500][500]);
 		//printf(" u0[0][5]=%f u0[0][30]=%f\n", u[0][0][5], u[0][0][30]);
+		
 
 /*	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
 		fprintf(arq,"phi:t=%.8f\n",(tempo*dt));
@@ -225,8 +298,8 @@ for(tempo=0;tempo<=telt;tempo++)
 		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
 		}
 		fprintf(arq3,"\n\n");
-*/		
-
+		
+		*/
 	}
 
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
