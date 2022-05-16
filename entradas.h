@@ -18,17 +18,20 @@
 #define GAMMAAC 0.25
 #define GAMMABC 0.25
 #define GAMMAABC 3.0
+#define ALPHA1 0.1 //preto
+#define ALPHA2 0.1 //vermelho
+#define ALPHA3 0.1 //branco
 
 #define TAU 1.0
 #define EPSILON 3.0
 #define M 1.0
 //PARÂMETROS DE GEOMETRIA
-#define compL 250	//comprimento do domínio x/d0=902
+#define compL 75	//comprimento do domínio x/d0=902
 #define R 15		//raio inicial
-#define TELX 1000	//total de elementos na direção x 1250
-#define TELY 1000	//total de elementos na direção y 1250
+#define TELX 300	//total de elementos na direção x 1250
+#define TELY 300	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 10000	//tempo total da simulação 3750 depois 938
+#define Ttot 1920	//tempo total da simulação 3750 depois 938
 #define dt 0.05		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define EXISTE 1	//valor da variável de fase no estado sólido

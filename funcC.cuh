@@ -4,12 +4,13 @@
 //__device__ void deltaf(float *delta, float *X);
 __device__ void atualiza(float *Q, float *K);
 __global__ void atualizaTudo(float *Q, float *K);
-__global__ void P1(float *rhsex,float *lambex, float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC);
-__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
+__global__ void P1(float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC, float alpha1, float alpha2, float alpha3);
+__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float alpha1, float alpha2, float alpha3);
 __device__ float DaDphi(float *Pa, float *Pb,float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
 __device__ float divDaDNphi(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC);
 __device__ float DwDphi(float *Pa,float *Pb,float *Pc, int idx, float gammaConstAB, float gammaConstAC);
-__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC);
+__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC, float alpha1, float alpha2, float alpha3);
+//__device__ float hf(float *X, int idx);
 //__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy);
 //__device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy);
 //__device__ float tau(float *P, int idx, float dx, float dy);
@@ -35,6 +36,8 @@ __device__ float Eypy(float *P,int idx,float dx, float dy);
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B);
 void readBMP(unsigned char* data);
 void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC);//,float ***QG, float ***QD, float ***QE);
+void curvas(FILE *arquivo,FILE *arquivo2, float ySim[]);
+void cristal(float **cont, float ySim[]);//(FILE *arquivo, float **cont, float ySim[]);
 
 //FUNÇÕES DE SUPORTE
 void inicializar(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, float B)
@@ -122,6 +125,117 @@ void cond_inicial(unsigned char *data, float ***QA,float ***QB,float ***QC)//,fl
 		}
 	}
 }
+void curvas(FILE *arquivo,FILE *arquivo2, float ySim[])
+{
+bool FLAG=true;
+bool FLAG2=true;
+int x;
+int xoff;
+int n2=0;
+int nf;
+int af;
+float thetaf;
+float y;
+float eta;
+float c1;
+float c2;
+float theta;
+float sumquad=0;
+float reg;
+float yAna[TELX];
+float dif[TELX];
+
+//CALCULO A CURVA ANALÍTICA
+	for(int a=80;a<=300;a++)
+	{
+		for(theta=M_PI/30;theta<=M_PI/3;theta=theta+M_PI/300)
+		{
+		FLAG=true;
+		sumquad=0;
+		x=0;
+		xoff=0;
+		eta=a/(2*theta);
+		c1=logf(sin(theta));
+		c2=-eta*(M_PI/2-theta);
+			while(xoff<TELX-1){
+			x=x+1;
+			//printf("x=%d xoff=%d\n",x,xoff);
+			//for(int x=0;x<TELX;x++)
+			y=eta*acos(exp((-x/eta)-c1))+c2;
+			if(y>0&&FLAG==true)//Só pra estabelecer onde começa o x
+				{
+				n2=x;
+				FLAG=false;
+				}
+				xoff=x-n2;
+				if(xoff>=0){//condição para o vetor existir e para não dar os resultados no final da linha
+				yAna[xoff]=y;
+				if(yAna[xoff]>0&&ySim[xoff]>0){
+				//fprintf(arquivo,"%f %f\n",x-n2,y);
+				//printf("yAna[%d]=%f ySim[%d]=%d\n",d,yAna[d],d,ySim[d]);
+				dif[xoff]=powf((yAna[xoff]-ySim[xoff]),2.0);
+				sumquad=sumquad+dif[xoff];
+				//printf("dif[%d]=%f\n",d,dif[d]);
+				}
+				}
+				//printf("sumquad=%f ",sumquad);
+			}
+			if(FLAG2==true&&sumquad>0){//primeiro mvalor atribuido à reg
+			reg=sumquad;
+			FLAG2=false;
+			}
+			if(sumquad<reg&&sumquad>0){
+			//printf("sum menor que reg ");
+			reg=sumquad;
+			nf=n2;
+			af=a;
+			thetaf=theta;
+			printf("\n nf=%d n2=%d, a=%d af=%d, theta=%f reg=%f\n",nf,n2,a,af,theta*180/M_PI,reg);
+			}
+		printf(".");
+		}
+		printf("X");
+	}
+		eta=af/(2*thetaf);
+		c1=logf(sin(thetaf));
+		c2=-eta*(M_PI/2-thetaf);
+		//printf("af=%d thetaf=%f eta=%f c1=%f c2=%f ln10=%f",af,thetaf,eta,c1,c2,log(10));
+		for(int x=0;x<TELX;x++){
+		//printf("n2=%d",nf);
+		y=eta*acos(exp((-x/eta)-c1))+c2;
+		//printf("[%d %f]",x-nf,y);
+		fprintf(arquivo,"%d %f\n",x-nf,y);
+		fprintf(arquivo2,"%d %f\n",x,ySim[x]); //-i+TELX -j+TELY/2
+		}
+}
+//FUNÇÃO PARA OBTER VALORES DO CONTORNO SIMULADO
+void cristal(float **cont, float ySim[])//(FILE *arquivo, float **cont, float ySim[])
+{
+bool FLAG=true;
+
+int j;
+int n1=0;
+
+	//OBTENHO A CURVA SIMULADA
+	for(int i=TELX-1;i>=0;i--)
+	{
+		j=(TELY-1)/2;
+		do{
+		j=j-1;
+		}
+		while(cont[i][j]>0.40&&j>0);
+		if(j<=((TELX/2)-3)&&FLAG==true){
+		n1=i;
+		FLAG=false;
+		}
+		if(j<(TELX/2)-3)
+		ySim[-i+n1]=-j+TELY/2;
+		//printf("n1=%d i=%d\n",n1,i);
+		//printf("ySim[%d]=%d\n",i-n1,-j+TELY/2);
+		//fprintf(arquivo,"%d %d\n",i-n1,-j+TELY/2); //-i+TELX -j+TELY/2
+	}
+	
+}
 
 //FUNÇÕES PRINCIPAIS
 extern __shared__ float cache[];
@@ -178,20 +292,18 @@ __device__ void atualiza(float *Q, float *K)
 }
 
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
-__global__ void P1(float *rhsex,float *lambex, float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC)
+__global__ void P1(float *Pa, float *Pb, float *Pc, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC, float alpha1, float alpha2, float alpha3)
 {
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 
-	float rhsf=rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
-	float lambdaf=lambda(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC,gammaConstBC);
+	float rhsf=rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC,alpha1,alpha2,alpha3);
+	float lambdaf=lambda(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC,gammaConstBC,alpha1,alpha2,alpha3);
 	
 	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
 	Pa[idx+TELX*TELY]=Pa[idx]+(dt*M)*(rhsf+(1.0/3.0)*lambdaf);
 	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
-	*rhsex=rhsf;
-	*lambex=lambdaf;
 	}
 }
 
@@ -286,12 +398,14 @@ return X1;
 */
 
 //FUNCAO QUE CALCULA RHS NA GPU
-__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC)
+__device__ float rhs(float *Pa, float *Pb, float *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float alpha1, float alpha2, float alpha3)
 {
 float rhs;
 float divDaDNphif=divDaDNphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
 float DaDphif=DaDphi(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC);
 float DwDphif=DwDphi(Pa,Pb,Pc,idx,gammaConstAB,gammaConstAC);
+//float hff1=alpha1*(5);
+
 /*if(Pa[idx]==0)
 rhs=0;
 else*/
@@ -350,8 +464,17 @@ DwDphi=Pa[idx]*Pb[idx]*Pb[idx]+Pa[idx]*Pc[idx]*Pc[idx];
 //1.62*(gammaConstAB*Pb[idx]+gammaConstAC*Pc[idx])+gammaABC*Pb[idx]*Pc[idx];
 return DwDphi;
 }
+//FUNÇÃO QUE CALCULA h`f() Por enquanto incluida dentro de rhs
+/*__device__ float hf(float *X, int idx)
+{
+float hf;
+float constBeta;
+float constAlfa
+hf=constBeta*(constAlfa*X[idx]-Teq)*(constAlfa*X[idx]-Teq)
+}*/
+
 //FUNÇÃO QUE CALCULA LAMBDA NA GPU
-__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC)
+__device__ float lambda(float*Pa, float*Pb, float*Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, float gammaConstBC, float alpha1, float alpha2, float alpha3)
 {
 float lambda;
 
@@ -374,7 +497,7 @@ lambda=(1.0/3.0)*(rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC,gammaABC)+rhs
 */
 //else
 //lambda=(divDaDNphif+DaDphif)+(1.0/2.0)*(DwDphifa+DwDphifb+DwDphifc+powf(Pa[idx],3.0)+powf(Pb[idx],3.0)+powf(Pc[idx],3.0));
-lambda=-(rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC)+rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC)+rhs(Pc,Pb,Pa,idx,dx,dy,gammaConstBC,gammaConstAC));
+lambda=-(rhs(Pa,Pb,Pc,idx,dx,dy,gammaConstAB,gammaConstAC,alpha1,alpha2,alpha3)+rhs(Pb,Pa,Pc,idx,dx,dy,gammaConstAB,gammaConstBC,alpha1,alpha2,alpha3)+rhs(Pc,Pb,Pa,idx,dx,dy,gammaConstBC,gammaConstAC,alpha1,alpha2,alpha3));
 return lambda;
 }
 //FUNÇÕES QUE CALCULAM AS DERIVADAS DE P NA GPU
