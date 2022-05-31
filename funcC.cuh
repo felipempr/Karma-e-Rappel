@@ -388,7 +388,7 @@ float frengf=freng(Pa,uf,idx,L1,Tm1);
 /*if(Pa[idx]==0)
 rhs=0;
 else*/
-rhs=(-divDaDNphif-DaDphif)-(1.0/EPSILON)*DwDphif-(1.0/uf[idx])*frengf;
+rhs=EPSILON*(-divDaDNphif-DaDphif)-(1.0/EPSILON)*DwDphif-(1.0/uf[idx])*frengf;
 return rhs;
 }
 //FUNCAO QUE CALCULA DaFunc/Dphi NA GPU
@@ -405,7 +405,8 @@ float Pyc=Py(Pc,idx,dy);
 float NB=Px(Pb,idx,dx)+Py(Pb,idx,dy);
 float NC=Px(Pc,idx,dx)+Py(Pc,idx,dy);*/
 
-DaDphi=gammaConstAB*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+gammaConstAC*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc));
+//DaDphi=gammaConstAB*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+gammaConstAC*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc));
+DaDphi=0;//segundo Steinbach
 return DaDphi;
 }
 //FUNÇÃO PARA CALCULAR GRADIENTE DE Da/DNphi
@@ -427,9 +428,10 @@ float NC=Px(Pc,idx,dx)+Py(Pc,idx,dy);
 float N2A=Pxx(Pa,idx,dx,FLAG1)+Pyy(Pa,idx,dy);
 float N2B=Pxx(Pb,idx,dx,FLAG2)+Pyy(Pb,idx,dy);
 float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy);
-float I=gammaConstAB*(Pb[idx]*Pxa*Pxb+Pb[idx]*Pya*Pyb+Pa[idx]*Pxb*Pxb+Pa[idx]*Pyb*Pyb+Pa[idx]*Pb[idx]*N2B-2*Pb[idx]*Pxb*Pxa-2*Pb[idx]*Pyb*Pya-Pb[idx]*Pb[idx]*N2A);
-float II=gammaConstAC*(Pc[idx]*Pxa*Pxc+Pc[idx]*Pya*Pyc+Pa[idx]*Pxc*Pxc+Pa[idx]*Pyc*Pyc+Pa[idx]*Pc[idx]*N2C-2*Pc[idx]*Pxc*Pxa-2*Pc[idx]*Pyc*Pya-Pc[idx]*Pc[idx]*N2A);
-divDaDNphi=(I+II);
+//float I=gammaConstAB*(Pb[idx]*Pxa*Pxb+Pb[idx]*Pya*Pyb+Pa[idx]*Pxb*Pxb+Pa[idx]*Pyb*Pyb+Pa[idx]*Pb[idx]*N2B-2*Pb[idx]*Pxb*Pxa-2*Pb[idx]*Pyb*Pya-Pb[idx]*Pb[idx]*N2A);
+//float II=gammaConstAC*(Pc[idx]*Pxa*Pxc+Pc[idx]*Pya*Pyc+Pa[idx]*Pxc*Pxc+Pa[idx]*Pyc*Pyc+Pa[idx]*Pc[idx]*N2C-2*Pc[idx]*Pxc*Pxa-2*Pc[idx]*Pyc*Pya-Pc[idx]*Pc[idx]*N2A);
+//divDaDNphi=(I+II);
+divDaDNphi=2.0*gammaConstAB*(Pa[idx]*N2B-Pb[idx]*N2A)+2.0*gammaConstAC*(Pa[idx]*N2C-Pc[idx]*N2A);//segundo Steinbach
 //divDaDNphi=2.0*gammaConstAB*(Pa[idx]*NA*NA+Pa[idx]*Pa[idx]*N2B-NA*(Pb[idx]*NA+Pa[idx]*NB)+Pa[idx]*Pb[idx]*N2A)+2.0*gammaConstAC*(Pa[idx]*NA*NA+Pa[idx]*Pa[idx]*N2C-NA*(Pc[idx]*NA+Pa[idx]*NC)+Pa[idx]*Pc[idx]*N2A);
 
 //gammaConstAB*Pb[idx]*(Px(Pb,idx,dx)+Py(Pb,idx,dy))+gammaConstAC*Pc[idx]*(Px(Pc,idx,dx)+Py(Pc,idx,dy));
@@ -439,15 +441,15 @@ return divDaDNphi;
 __device__ float DwDphi(float *Pa, float*Pb,float *Pc, int idx, float gammaConstAB, float gammaConstAC)
 {
 float DwDphi;
-DwDphi=2*Pa[idx]*Pb[idx]*Pb[idx]+2*Pa[idx]*Pc[idx]*Pc[idx];
-//1.62*(gammaConstAB*Pb[idx]+gammaConstAC*Pc[idx])+gammaABC*Pb[idx]*Pc[idx];
+DwDphi=2.0*gammaConstAB*Pa[idx]*Pb[idx]*Pb[idx]+2.0*gammaConstAC*Pa[idx]*Pc[idx]*Pc[idx];
+//DwDphi=1.62*(gammaConstAB*Pb[idx]+gammaConstAC*Pc[idx])+GAMMAABC*Pb[idx]*Pc[idx];
 return DwDphi;
 }
 //FUNÇÃO QUE CALCULA h`f() Por enquanto incluida dentro de rhs
 __device__ float freng(float *Pa, float *uf, int idx, float L, float Tm)
 {
 float freng;
-freng=L*((uf[idx]-Tm)/Tm)*6*(Pa[idx]-(Pa[idx]*Pa[idx]));
+freng=L*((uf[idx]-Tm)/Tm)*6.0*(Pa[idx]-(Pa[idx]*Pa[idx]));
 return freng;
 }
 

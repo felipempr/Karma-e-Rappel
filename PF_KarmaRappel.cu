@@ -145,7 +145,7 @@ inicializar(0,1,0,TELX,0,TELY,PL,EXISTE);
 inicializar(0,1,0,TELX,0,TELY,PS,N_EXISTE);
 inicializar(0,1,0,TELX,0,TELY,PI,N_EXISTE);
 
-//for(j=0;j<=10;j++){
+/*for(j=0;j<=10;j++){
 for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	PS[0][i][0]=EXISTE;
@@ -156,7 +156,7 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 	X[1][i][0]=T;
 
 }
-//}
+}*/
 
 	/*for (j=0;j<(7*TELY/8);j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
@@ -268,11 +268,11 @@ for(tempo=0;tempo<=telt;tempo++)
 		{
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
 			contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
-			if(PS[0][j][i]<0.4&&j==(TELX/2)&&FLAG==1){
-			fprintf(arq,"%f %d \n", tempo*dt, i-1); //ARQUIVO TEXTO
+			if(PS[0][j][i]<0.5&&j==(TELX/2)&&FLAG==1){
+			fprintf(arq,"%f %d \n", tempo*dt, i); //ARQUIVO TEXTO
 			FLAG=0;}
 		}
-		if(tempo==38400){
+		if(tempo==43200){
 			fprintf(arqb,"%d %f \n", j, u[0][TELX/2][j]); //ARQUIVO TEXTO
 			}
 		//fprintf(arq,"\n\n");
