@@ -37,7 +37,7 @@ int main(void)
 		
 	int telt=Ttot/dt;
 	float dx=(float)compL/(float)TELX;
-	float dy=(float)compL/(float)TELY;
+	float dy=0.01;//=(float)compL/(float)TELY;
 	float ySim[TELX];
 
 	unsigned char* bmp; 
@@ -133,10 +133,25 @@ int main(void)
 	FILE *arqc;
 	FILE *arq2;
 	FILE *arq3;
+
+	FILE *curva1;
+	FILE *curva2;
+	FILE *curva3;
+	FILE *curvaT1;
+	FILE *curvaT2;
+	FILE *curvaT3;
+
 	arq=fopen("VInt","w");//para binário "wb"
 	arqb=fopen("TInt","w");//para binário "wb"
 	arq2=fopen("NestlerT","wb");//para binário "wb"
 	arq3=fopen("NestlerTemp","wb");
+
+	curva1=fopen("curva1","w");//para binário "wb"
+	curva2=fopen("curva2","w");//para binário "wb"
+	curva3=fopen("curva3","w");//para binário "wb"
+	curvaT1=fopen("curvaT1","w");//para binário "wb"
+	curvaT2=fopen("curvaT2","w");//para binário "wb"
+	curvaT3=fopen("curvaT3","w");//para binário "wb"
 	
 //INSERINDO VALOR INICIAL NAS MATRIZES
 inicializar(0,2,0,TELX,0,TELY,u,TmS);
@@ -220,19 +235,20 @@ for(int t=0;t<2;t++)
 //cudaMemcpy(crhs, rhs, sizeof(float), cudaMemcpyDeviceToHost);
 //cudaMemcpy(clamb, lamb, sizeof(float), cudaMemcpyDeviceToHost);
 //LOOP PRINCIPAL
+printf("\n%f %f, ",dx,dy);
 for(tempo=0;tempo<=telt;tempo++)
 {
 	printf("%d, ",tempo);
-
+	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
-	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,GAMMAAB,GAMMAAC,GAMMABC,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,GAMMABC,GAMMAAC,GAMMAAB,LI,TmI,LL,TmL,LS,TmS,1,2,0);
-	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,GAMMAAC,GAMMAAB,GAMMABC,LL,TmL,LI,TmI,LS,TmS,2,1,0);
-		cudaDeviceSynchronize();
+	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,GAMMASL,GAMMASI,GAMMALI,mSL,mSI,mLI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
+	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,GAMMALI,GAMMASL,GAMMASI,mLI,mSL,mSI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
+	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,GAMMALI,GAMMASI,GAMMASL,mLI,mSI,mSL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
+	cudaDeviceSynchronize();
 
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS,PcI, deltac, Fox, Foy,LS,LI);
+	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS,PcL, deltac, Fox, Foy,LS,LL);
 	cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
@@ -245,10 +261,10 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%480==0)
+	if (tempo%1000==0)
 	{
 		
-		FLAG=1;//flaf pra pegar o valor do contorno e calcular a velocidade da interface
+		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
 		//COPIANDO VARIÁVEIS DA GPU
 		for (int t=0;t<2;t++)
 		{
@@ -268,25 +284,33 @@ for(tempo=0;tempo<=telt;tempo++)
 		{
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
 			contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
-			if(PS[0][j][i]<0.5&&j==(TELX/2)&&FLAG==1){
-			fprintf(arq,"%f %d \n", tempo*dt, i); //ARQUIVO TEXTO
+			if(PS[0][j][i]<=0.6&&j==(TELX/2)&&FLAG==1){
+			//printf("contorno=%f\n", contorno[i][j]);
+			fprintf(arq,"%f %f \n", tempo*dt, i*dx); //ARQUIVO TEXTO
+			//fprintf(curva1, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.03)));
+			//fprintf(curva2, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.04)));
+			//fprintf(curva3, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.05)));
 			FLAG=0;}
 		}
-		if(tempo==43200){
-			fprintf(arqb,"%d %f \n", j, u[0][TELX/2][j]); //ARQUIVO TEXTO
-			}
+		if(tempo==99000){
+		fprintf(arqb,"%f %f \n", j*dx, X[0][TELX/2][j]); //ARQUIVO TEXTO
+		//fprintf(curvaT1, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.08*0.495)))/(erf(1.5)));
+		//fprintf(curvaT2, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.12*0.495)))/(erf(1.8)));
+		//fprintf(curvaT3, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.16*0.495)))/(erf(2.0)));
+		}
 		//fprintf(arq,"\n\n");
 		fwrite(PS[0][j], sizeof(float), TELX, arq2);//ARQUIVO BINÁRIO
 		fwrite(u[0][j], sizeof(float), TELX, arq3);//ARQUIVO BINÁRIO
 	}
 	
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
-		printf("\n PS[10][10]=%f PS[190][10]=%f PS[100][100]=%f\n",  PS[0][10][10], PS[0][190][10],PS[0][100][100]);
-		printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
-		printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
+		//printf("\n PS[10][10]=%f PS[10][150]=%f PS[10][200]=%f\n",  PS[0][10][10], PS[0][10][150],PS[0][10][200]);
+		//printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
+		//printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
 		//printf(" contorno=%f\n", contorno[500][500]);
-		printf(" u0[0][5]=%f u0[100][100]=%f\n", u[0][0][5], u[0][100][100]);
+		printf(" u0[0][10]=%f u0[80][10]=%f\n", u[0][0][10], u[0][80][10]);
+		
 		
 
 /*	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
@@ -329,6 +353,12 @@ fclose(arq);
 fclose(arqb);
 fclose(arq2);
 fclose(arq3);
+fclose(curva1);
+fclose(curva2);
+fclose(curva3);
+fclose(curvaT1);
+fclose(curvaT2);
+fclose(curvaT3);
 
 for(int t=0;t<2;t++)
 {
