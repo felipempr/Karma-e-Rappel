@@ -242,9 +242,9 @@ for(tempo=0;tempo<=telt;tempo++)
 	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
-	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,GAMMASL,GAMMASI,GAMMALI,mSL,mSI,mLI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,GAMMALI,GAMMASL,GAMMASI,mLI,mSL,mSI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
-	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,GAMMALI,GAMMASI,GAMMASL,mLI,mSI,mSL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
+	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,EPSILONSL,EPSILONSI,EPSILONLI,WSL,WSI,WLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
+	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,EPSILONLI,EPSILONSL,EPSILONSI,WLI,WSL,WSI,MILI,MISL,MISI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
+	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
 	cudaDeviceSynchronize();
 
 	//CALCULO DO CAMPO DE TEMPERATURAS
@@ -304,7 +304,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	}
 	
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
-		//printf("\n PS[10][10]=%f PS[10][150]=%f PS[10][200]=%f\n",  PS[0][10][10], PS[0][10][150],PS[0][10][200]);
+		printf("\n PS[50][10]=%f PS[50][50]=%f PS[50][20]=%f\n",  PS[0][50][10], PS[0][50][20],PS[0][50][50]);
 		//printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
 		//printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
