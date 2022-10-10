@@ -14,6 +14,9 @@
 #include "entradas.h"
 #include "funcC.cuh"
 
+#ifdef NAN
+/* NAN is supported */
+#endif
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
@@ -32,12 +35,12 @@ int main(void)
 	int i;
 	int j;
 	int tempo;
-	int numThreads = 512;
+	int numThreads = 512;//512
 	int numBlocks = (TELX*TELY + numThreads - 1)/numThreads; //3052
 		
 	int telt=Ttot/dt;
 	float dx=(float)compL/(float)TELX;
-	float dy=0.01;//=(float)compL/(float)TELY;
+	float dy=(float)compL/(float)TELY;
 	float ySim[TELX];
 
 	unsigned char* bmp; 
@@ -131,8 +134,10 @@ int main(void)
 	FILE *arq;
 	FILE *arqb;
 	FILE *arqc;
-	FILE *arq2;
-	FILE *arq3;
+	FILE *arqS;
+	FILE *arqL;
+	FILE *arqI;
+	FILE *arqT;
 
 	FILE *curva1;
 	FILE *curva2;
@@ -143,8 +148,10 @@ int main(void)
 
 	arq=fopen("VInt","w");//para binário "wb"
 	arqb=fopen("TInt","w");//para binário "wb"
-	arq2=fopen("NestlerT","wb");//para binário "wb"
-	arq3=fopen("NestlerTemp","wb");
+	arqS=fopen("NestlerS","wb");//para binário "wb"
+	arqL=fopen("NestlerL","wb");//para binário "wb"
+	arqI=fopen("NestlerI","wb");//para binário "wb"
+	arqT=fopen("NestlerTemp","wb");
 
 	curva1=fopen("curva1","w");//para binário "wb"
 	curva2=fopen("curva2","w");//para binário "wb"
@@ -156,22 +163,17 @@ int main(void)
 //INSERINDO VALOR INICIAL NAS MATRIZES
 inicializar(0,2,0,TELX,0,TELY,u,TmS);
 inicializar(0,2,0,TELX,0,TELY,X,TmS);
-inicializar(0,1,0,TELX,0,TELY,PL,EXISTE);
+inicializar(0,1,0,TELX,0,TELY,PL,N_EXISTE);
 inicializar(0,1,0,TELX,0,TELY,PS,N_EXISTE);
-inicializar(0,1,0,TELX,0,TELY,PI,N_EXISTE);
+inicializar(0,1,0,TELX,0,TELY,PI,0.0);
 
-/*for(j=0;j<=10;j++){
-for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
+
+/*for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
-	PS[0][i][0]=EXISTE;
-	PL[0][i][0]=N_EXISTE;
-	u[0][i][0]=T;
-	u[1][i][0]=T;
-	X[0][i][0]=T;
-	X[1][i][0]=T;
-
-}
+	PS[0][i][0]=0.5;
+	PL[0][i][0]=0.5;
 }*/
+
 
 	/*for (j=0;j<(7*TELY/8);j++)//(j=tely/2-r;j<=tely/2+r;j++)
 	{
@@ -209,8 +211,8 @@ for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 		PL[0][i][j]=1;
 		}*/
 
-//readBMP(bmp);
-//cond_inicial(bmp,PL,PI,PS);
+readBMP(bmp);
+cond_inicial(bmp,PL,PI,PS);
 /*for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 {
 	for (j=0;j<R;j++)//(j=tely/2-r;j<=tely/2+r;j++)
@@ -246,7 +248,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,EPSILONLI,EPSILONSL,EPSILONSI,WLI,WSL,WSI,MILI,MISL,MISI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
 	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
 	cudaDeviceSynchronize();
-
+	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
 	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS,PcL, deltac, Fox, Foy,LS,LL);
 	cudaDeviceSynchronize();
@@ -259,9 +261,9 @@ for(tempo=0;tempo<=telt;tempo++)
 			exit(-1);
 		}
 	*/
-
+	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%1000==0)
+	if (tempo%10000==0)
 	{
 		
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
@@ -283,7 +285,7 @@ for(tempo=0;tempo<=telt;tempo++)
 		for(i=0;i<TELX;i++)
 		{
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
+			//contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
 			if(PS[0][j][i]<=0.6&&j==(TELX/2)&&FLAG==1){
 			//printf("contorno=%f\n", contorno[i][j]);
 			fprintf(arq,"%f %f \n", tempo*dt, i*dx); //ARQUIVO TEXTO
@@ -292,24 +294,26 @@ for(tempo=0;tempo<=telt;tempo++)
 			//fprintf(curva3, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.05)));
 			FLAG=0;}
 		}
-		if(tempo==99000){
+		if(tempo==990000){
 		fprintf(arqb,"%f %f \n", j*dx, X[0][TELX/2][j]); //ARQUIVO TEXTO
 		//fprintf(curvaT1, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.08*0.495)))/(erf(1.5)));
 		//fprintf(curvaT2, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.12*0.495)))/(erf(1.8)));
 		//fprintf(curvaT3, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.16*0.495)))/(erf(2.0)));
 		}
 		//fprintf(arq,"\n\n");
-		fwrite(PS[0][j], sizeof(float), TELX, arq2);//ARQUIVO BINÁRIO
-		fwrite(u[0][j], sizeof(float), TELX, arq3);//ARQUIVO BINÁRIO
+		fwrite(PS[0][j], sizeof(float), TELX, arqS);//ARQUIVO BINÁRIO
+		fwrite(PL[0][j], sizeof(float), TELX, arqL);//ARQUIVO BINÁRIO
+		fwrite(PI[0][j], sizeof(float), TELX, arqI);//ARQUIVO BINÁRIO
+		fwrite(u[0][j], sizeof(float), TELX, arqT);//ARQUIVO BINÁRIO
 	}
 	
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
-		printf("\n PS[50][10]=%f PS[50][50]=%f PS[50][20]=%f\n",  PS[0][50][10], PS[0][50][20],PS[0][50][50]);
+		printf("\n PS[50][10]=%f PS[50][50]=%f PS[50][20]=%f\n",  PS[0][10][5], PS[0][20][5],PS[0][30][5]);
 		//printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
 		//printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
 		//printf(" contorno=%f\n", contorno[500][500]);
-		printf(" u0[0][10]=%f u0[80][10]=%f\n", u[0][0][10], u[0][80][10]);
+		printf(" u0[0][10]=%f u0[80][10]=%f\n", u[0][0][10], u[0][5][10]);
 		
 		
 
@@ -351,8 +355,10 @@ atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 fclose(arq);
 fclose(arqb);
-fclose(arq2);
-fclose(arq3);
+fclose(arqS);
+fclose(arqL);
+fclose(arqI);
+fclose(arqT);
 fclose(curva1);
 fclose(curva2);
 fclose(curva3);

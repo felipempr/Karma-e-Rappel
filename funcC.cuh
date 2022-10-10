@@ -19,7 +19,7 @@ __device__ float X1(int idx,float *u, float *X, float *Pa,float *Pb, float Fox, 
 __device__ float Px(float *P, int idx, float dx, int FLAG);
 __device__ float Py(float *P, int idx, float dy);
 __device__ float Pxx(float *P, int idx, float dx, int FLAG);
-__device__ float Pyy(float *P, int idx, float dy);
+__device__ float Pyy(float *P, int idx, float dy, int FLAG);
 __device__ float Pxy(float *P, int idx, float dx, float dy, int FLAG);
 __device__ float Pyx(float *P, int idx, float dx, float dy, int FLAG);
 /*
@@ -296,15 +296,20 @@ __device__ void atualiza(float *Q, float *K)
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
 __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, float dx, float dy, float epsilonAB, float epsilonAC, float epsilonBC,float WAB,float WAC,float WBC, float miAB, float miAC, float miBC, float L1, float Tm1, float L2, float Tm2, float L3, float Tm3, int FLAG1, int FLAG2, int FLAG3)
 {
+	float M;
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 
 	float rhsf=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,FLAG1,FLAG2,FLAG3);
 	float lambdaf=lambda(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,L2,Tm2,L3,Tm3,FLAG1,FLAG2,FLAG3);
-	float M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
+	
+	M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
+	
+	//float M=miAB*Pa[idx]*Pb[idx]+miAC*Pa[idx]*Pc[idx];
 	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
 	Pa[idx+TELX*TELY]=Pa[idx]+(dt*M)*(rhsf-(1.0/3.0)*lambdaf);
+	
 	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
 	}
 }
@@ -341,7 +346,7 @@ float X1;
 if(idx>=0&&idx<TELX)//linha de baixo j==0
 			{
 				if(idx==0) //idx%TELX==0
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(T*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==TELX-1)//(idx+1)%TELX==0
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
@@ -353,7 +358,7 @@ if(idx>=0&&idx<TELX)//linha de baixo j==0
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)//linha de cima j==TELY-1
 			{
 				if(idx==TELX*(TELY-1))
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(T*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==(TELX*TELY)-1)
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
@@ -365,7 +370,7 @@ else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)//linha de cima j==TELY-1
 else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 			{
 				if(idx%TELX==0)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(T*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));//0<x<L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));//0<x<L
 				
 				else if((idx+1)%TELX==0)
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));//x=L
@@ -373,7 +378,7 @@ else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 				else
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+2.0*Foy+1));
 			}
-			*/
+*/			
 //1D
 if(idx%TELX==0)
 X1=(u[idx]/(2.0*Fox+1))+(T*(Fox/(2.0*Fox+1)))+(X[idx+1]*(Fox/(2.0*Fox+1)))+(L1)*((Pa[idx+TELX*TELY]-Pa[idx])/(2.0*Fox+1));//-(L2)*6.0*(Pa[idx]-powf(Pa[idx],2))*((Pb[idx+TELX*TELY]-Pb[idx])/(2.0*Fox+1));
@@ -407,27 +412,25 @@ __device__ float gradeng(float *Pa,float *Pb, float *Pc, int idx, float dx, floa
 {
 float gradeng;
 
-float Pxa=Px(Pa,idx,dx,FLAG1);
-float Pxb=Px(Pb,idx,dx,FLAG2);
-float Pxc=Px(Pc,idx,dx,FLAG3);
-float Pya=Py(Pa,idx,dy);
-float Pyb=Py(Pb,idx,dy);
-float Pyc=Py(Pc,idx,dy);
+//float Pxa=Px(Pa,idx,dx,FLAG1);
+//float Pxb=Px(Pb,idx,dx,FLAG2);
+//float Pxc=Px(Pc,idx,dx,FLAG3);
+//float Pya=Py(Pa,idx,dy);
+//float Pyb=Py(Pb,idx,dy);
+//float Pyc=Py(Pc,idx,dy);
 
 float Pxxa=Pxx(Pa,idx,dx,FLAG1);
 float Pxxb=Pxx(Pb,idx,dx,FLAG2);
 float Pxxc=Pxx(Pc,idx,dx,FLAG3);
 
-float N2A=Pxx(Pa,idx,dx,FLAG1)+Pyy(Pa,idx,dy);
-float N2B=Pxx(Pb,idx,dx,FLAG2)+Pyy(Pb,idx,dy);
-float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy);
+//float N2A=Pxx(Pa,idx,dx,FLAG1)+Pyy(Pa,idx,dy,FLAG1);
+//float N2B=Pxx(Pb,idx,dx,FLAG2)+Pyy(Pb,idx,dy,FLAG2);
+//float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy,FLAG3);
 
-//gradeng=2.0*(gammaConstAB/constmAB)*(2.0*Pa[idx]*N2B-Pb[idx]*(Pxa*Pxb+Pya*Pyb)+Pa[idx]*Pb[idx]*N2B-Pb[idx]*Pb[idx]*N2A)+2.0*(gammaConstAC/constmAC)*(2.0*Pa[idx]*N2C-Pc[idx]*(Pxa*Pxc+Pya*Pyc)+Pa[idx]*Pc[idx]*N2C-Pc[idx]*Pc[idx]*N2A);
 //CORRIGIDO?gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+Pa[idx]*Pb[idx]*N2B-powf(Pb[idx],2)*N2A+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc))+Pa[idx]*Pc[idx]*N2C-powf(Pc[idx],2);
+//gradeng=epsilonAB*(N2B-N2A)+epsilonAC*(N2C-N2A)-epsilonBC*(N2C-N2A);
 //1D
-
 //gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa);
-//gradeng=EPSILON*(2.0*(epsilonAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(epsilonAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa));
 gradeng=epsilonAB*(Pxxb-Pxxa)+epsilonAC*(Pxxc-Pxxa)-epsilonBC*(Pxxc+Pxxb);
 
 return -gradeng;
@@ -468,19 +471,19 @@ float Px;
 float boundE;
 float boundD;
 if(FLAG==0){
-boundE=1.0;
-boundD=0.0;}
+boundE=EXISTE;//1.0;
+boundD=N_EXISTE;}//0.0;}
 else if (FLAG==2){
-boundE=0.0;
-boundD=1.0;}
+boundE=N_EXISTE;//0.0;
+boundD=EXISTE;}//1.0;}
 else{
 boundE=0.0;
 boundD=0.0;}
 
 if(idx%TELX==0)
-Px=(P[idx+1]-boundE)/(2.0*dx);//Px=(P[idx+1]-P[idx+1])/(2.0*dx);
+Px=(P[idx+1]-P[idx+1])/(2.0*dx);//Px=(P[idx+1]-boundE)/(2.0*dx);
 else if((idx+1)%TELX==0)
-Px=(P[idx-1]-boundD)/(2.0*dx);
+Px=(P[idx-1]-P[idx-1])/(2.0*dx);
 else
 Px=(P[idx+1]-P[idx-1])/(2.0*dx);
 return Px;
@@ -505,14 +508,14 @@ float Pxx;
 float boundE;
 float boundD;
 if(FLAG==0){
-boundE=1.0;
-boundD=0.0;}
+boundE=EXISTE;//1.0;
+boundD=N_EXISTE;}//0.0;}
 else if (FLAG==2){
-boundE=0.0;
-boundD=1.0;}
+boundE=N_EXISTE;//0.0;
+boundD=EXISTE;}//1.0;}
 else{
-boundE=0.0;
-boundD=0.0;}
+boundE=N_EXISTE;
+boundD=N_EXISTE;}
 if(idx%TELX==0)
 Pxx=(P[idx+1]-2.0*P[idx]+boundE)/(dx*dx);//Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx);
 else if((idx+1)%TELX==0)
@@ -521,9 +524,15 @@ else
 Pxx=(P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx);
 return Pxx;
 }
-__device__ float Pyy(float *P, int idx, float dy)
+__device__ float Pyy(float *P, int idx, float dy, int FLAG)
 {
 float Pyy;
+float bound;
+if(FLAG==2)
+bound=EXISTE;
+else
+bound=N_EXISTE;
+
 if(idx>=0&&idx<TELX)
 Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy);
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
@@ -543,7 +552,7 @@ else
 bound=0.0;
 if (idx>=0&&idx<TELX){
 		if (idx==0)
-			Pxy=(P[idx+TELX+1]-bound-P[idx+TELX+1]+bound)/(4.0*dx*dy);//Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
+			Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
 		else if (idx==TELX-1)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 		else
@@ -551,7 +560,7 @@ if (idx>=0&&idx<TELX){
 	}
 	else if (idx>=TELX*(TELY-1)&&idx<TELX*TELY){
 		if (idx==TELX*(TELY-1))
-			Pxy=(P[idx+1-TELX]-bound-P[idx+1-TELX]+bound)/(4.0*dx*dy);//Pxy=(P[idx+1-TELX]-P[idx+1-TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
+			Pxy=(P[idx+1-TELX]-P[idx+1-TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if (idx==(TELX*TELY)-1)
 			Pxy=(P[idx-1-TELX]-P[idx-1-TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else
@@ -559,7 +568,7 @@ if (idx>=0&&idx<TELX){
 	}
 	else {
 		if (idx%TELX==0)
-			Pxy=(P[idx+1+TELX]-bound-P[idx+1-TELX]+bound)/(4.0*dx*dy);//Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
+			Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if ((idx+1)%TELX==0)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else
@@ -598,7 +607,7 @@ else
 bound=0.0;
 if (idx>=0&&idx<TELX){
 		if (idx==0)
-			Pxy=(P[idx+TELX+1]-bound-P[idx+TELX+1]+bound)/(4.0*dx*dy);//Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
+			Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
 		else if (idx==TELX-1)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 		else
@@ -606,7 +615,7 @@ if (idx>=0&&idx<TELX){
 	}
 	else if (idx>=TELX*(TELY-1)&&idx<TELX*TELY){
 		if (idx==TELX*(TELY-1))
-			Pxy=(P[idx+1-TELX]-bound-P[idx+1-TELX]+bound)/(4.0*dx*dy);//Pxy=(P[idx+1-TELX]-P[idx+1-TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
+			Pxy=(P[idx+1-TELX]-P[idx+1-TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if (idx==(TELX*TELY)-1)
 			Pxy=(P[idx-1-TELX]-P[idx-1-TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else
@@ -614,7 +623,7 @@ if (idx>=0&&idx<TELX){
 	}
 	else {
 		if (idx%TELX==0)
-			Pxy=(P[idx+1+TELX]-bound-P[idx+1-TELX]+bound)/(4.0*dx*dy);//Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
+			Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if ((idx+1)%TELX==0)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else
