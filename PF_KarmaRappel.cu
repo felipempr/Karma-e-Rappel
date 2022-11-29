@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <cuda.h>
+
 //#include <omp.h>
 #include "entradas.h"
 #include "funcC.cuh"
@@ -39,13 +40,14 @@ int main(void)
 	int numBlocks = (TELX*TELY + numThreads - 1)/numThreads; //3052
 		
 	int telt=Ttot/dt;
-	float dx=(float)compL/(float)TELX;
-	float dy=(float)compL/(float)TELY;
-	float ySim[TELX];
+	double dx=compL/TELX;
+	double dy=compL/TELY;
+	//float ySim[TELX];
 
 	unsigned char* bmp; 
 	bmp=(unsigned char*)malloc(3*TELX*TELY*sizeof(unsigned char));
 		
+	
 	float ***PL;
 	PL=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
@@ -71,11 +73,6 @@ int main(void)
 		}
 	}
 
-	/*float *rhs;
-	rhs=(float*)malloc(sizeof(float));
-	float *lamb;
-	lamb=(float*)malloc(sizeof(float));
-	*/
 	float ***u;
 	u=(float***)malloc(2*sizeof(float**));
 	for(int t=0;t<=1;t++){
@@ -98,6 +95,11 @@ int main(void)
 	contorno=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
 			contorno[i]=(float*)malloc(TELY*sizeof(float));
+	}
+	float **mobilidade;
+	mobilidade=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			mobilidade[i]=(float*)malloc(TELY*sizeof(float));
 	}
 	
 	float *PcL;	
@@ -131,41 +133,42 @@ int main(void)
 	printf("\ntelt=%d\n",telt);
 		
 	//ABERTURA DE ARQUIVOS EXTERNOS
-	FILE *arq;
+	FILE *arqM;
 	FILE *arqb;
-	FILE *arqc;
+	FILE *arqC;
 	FILE *arqS;
 	FILE *arqL;
 	FILE *arqI;
 	FILE *arqT;
 
-	FILE *curva1;
-	FILE *curva2;
-	FILE *curva3;
-	FILE *curvaT1;
-	FILE *curvaT2;
-	FILE *curvaT3;
+	//FILE *curva1;
+	//FILE *curva2;
+	//FILE *curva3;
+	//FILE *curvaT1;
+	//FILE *curvaT2;
+	//FILE *curvaT3;
 
-	arq=fopen("VInt","w");//para binário "wb"
-	arqb=fopen("TInt","w");//para binário "wb"
+	arqM=fopen("NestlerM","wb");//para binário "wb"
+	arqb=fopen("NestlerLinha","w");//para binário "wb"
 	arqS=fopen("NestlerS","wb");//para binário "wb"
 	arqL=fopen("NestlerL","wb");//para binário "wb"
 	arqI=fopen("NestlerI","wb");//para binário "wb"
 	arqT=fopen("NestlerTemp","wb");
+	arqC=fopen("NestlerC","wb");
 
-	curva1=fopen("curva1","w");//para binário "wb"
-	curva2=fopen("curva2","w");//para binário "wb"
-	curva3=fopen("curva3","w");//para binário "wb"
-	curvaT1=fopen("curvaT1","w");//para binário "wb"
-	curvaT2=fopen("curvaT2","w");//para binário "wb"
-	curvaT3=fopen("curvaT3","w");//para binário "wb"
+	//curva1=fopen("curva1","w");//para binário "wb"
+	//curva2=fopen("curva2","w");//para binário "wb"
+	//curva3=fopen("curva3","w");//para binário "wb"
+	//curvaT1=fopen("curvaT1","w");//para binário "wb"
+	//curvaT2=fopen("curvaT2","w");//para binário "wb"
+	//curvaT3=fopen("curvaT3","w");//para binário "wb"
 	
 //INSERINDO VALOR INICIAL NAS MATRIZES
-inicializar(0,2,0,TELX,0,TELY,u,TmS);
-inicializar(0,2,0,TELX,0,TELY,X,TmS);
-inicializar(0,1,0,TELX,0,TELY,PL,N_EXISTE);
-inicializar(0,1,0,TELX,0,TELY,PS,N_EXISTE);
-inicializar(0,1,0,TELX,0,TELY,PI,0.0);
+inicializarfloat(0,2,0,TELX,0,TELY,u,T);
+inicializarfloat(0,2,0,TELX,0,TELY,X,T);
+inicializarfloat(0,1,0,TELX,0,TELY,PL,N_EXISTE);
+inicializarfloat(0,1,0,TELX,0,TELY,PS,N_EXISTE);
+inicializarfloat(0,1,0,TELX,0,TELY,PI,N_EXISTE);
 
 
 /*for (i=0;i<TELX;i++)//(i=telx/2-r;i<=telx/2+r;i++)
@@ -174,42 +177,6 @@ inicializar(0,1,0,TELX,0,TELY,PI,0.0);
 	PL[0][i][0]=0.5;
 }*/
 
-
-	/*for (j=0;j<(7*TELY/8);j++)//(j=tely/2-r;j<=tely/2+r;j++)
-	{
-		
-		//if((pow((i),2)+pow((j),2))<=(R*R))//((pow((i-telx/2.0),2)+pow((j-tely/2.0),2))<=(r*r))
-		//if(i<((j+((3.0*(TELY-1))/4.0))/(3.0*(TELY-1)/(TELX-1)))){
-		if(i<((j+((7.0*(TELY-1))/8.0))/(7.0*(TELY-1)/(2.0*(TELX-1))))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		//else if(i>((j-((9.0*(TELY-1))/4.0))/-((3.0*(TELY-1))/(TELX-1)))){
-		else if(i>((j-((21.0*(TELY-1))/8.0))/-((7.0*(TELY-1))/(2.0*(TELX-1))))){
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}
-		else{
-		PI[0][i][j]=1;
-		PS[0][i][j]=0;
-		PL[0][i][j]=0;
-		}
-
-	}
-
-	for(j=(7*TELY/8);j<TELY;j++)
-		if(i<((TELX-1)/2)){
-		PI[0][i][j]=0;
-		PS[0][i][j]=1;
-		PL[0][i][j]=0;
-		}
-		else{
-		PI[0][i][j]=0;
-		PS[0][i][j]=0;
-		PL[0][i][j]=1;
-		}*/
 
 readBMP(bmp);
 cond_inicial(bmp,PL,PI,PS);
@@ -250,7 +217,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS,PcL, deltac, Fox, Foy,LS,LL);
+	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
 	cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
@@ -263,7 +230,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%10000==0)
+	if (tempo%1000==0)
 	{
 		
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
@@ -282,67 +249,73 @@ for(tempo=0;tempo<=telt;tempo++)
 		//fprintf(arq, "phi:t=%f\n",(tempo*dt));
 	for(j=0;j<TELY;j++)
 	{
+		
 		for(i=0;i<TELX;i++)
 		{
+			mobilidade[j][i]=(MISL*PS[0][j][i]*PL[0][j][i])/((1-PS[0][j][i])*(1-PL[0][j][i]))+(MISI*PS[0][j][i]*PI[0][j][i])/((1-PS[0][j][i])*(1-PI[0][j][i]))+(MILI*PL[0][j][i]*PI[0][j][i])/((1-PL[0][j][i])*(1-PI[0][j][i]));
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
-			//contorno[j][i]=PL[0][i][j]*PL[0][i][j]+PS[0][i][j]*PS[0][i][j]+PI[0][i][j]*PI[0][i][j];//contorno[-j+TELY-1][i]
-			if(PS[0][j][i]<=0.6&&j==(TELX/2)&&FLAG==1){
+			contorno[j][i]=PL[0][j][i]*PL[0][j][i]+PS[0][j][i]*PS[0][j][i]+PI[0][j][i]*PI[0][j][i];//contorno[-j+TELY-1][i]
+			//if(PS[0][j][i]<=0.6&&j==(TELX/2)&&FLAG==1){
 			//printf("contorno=%f\n", contorno[i][j]);
-			fprintf(arq,"%f %f \n", tempo*dt, i*dx); //ARQUIVO TEXTO
+			//fprintf(arq,"%f %f \n", tempo*dt, i*dx); //ARQUIVO TEXTO
 			//fprintf(curva1, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.03)));
 			//fprintf(curva2, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.04)));
 			//fprintf(curva3, "%f %f \n", tempo*dt, (2*1.8*sqrt((tempo*dt)*0.05)));
-			FLAG=0;}
+			//FLAG=0;}
 		}
-		if(tempo==990000){
-		fprintf(arqb,"%f %f \n", j*dx, X[0][TELX/2][j]); //ARQUIVO TEXTO
+		/*if(tempo==990000){
+		
+		//fprintf(arqb,"%f %f \n", j*dx, X[0][TELX/2][j]); //ARQUIVO TEXTO
+		
 		//fprintf(curvaT1, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.08*0.495)))/(erf(1.5)));
 		//fprintf(curvaT2, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.12*0.495)))/(erf(1.8)));
 		//fprintf(curvaT3, "%f %f \n", j*dx, 1+1.0*erf((j*dx)/(2*sqrt(0.16*0.495)))/(erf(2.0)));
-		}
+		}*/
 		//fprintf(arq,"\n\n");
 		fwrite(PS[0][j], sizeof(float), TELX, arqS);//ARQUIVO BINÁRIO
 		fwrite(PL[0][j], sizeof(float), TELX, arqL);//ARQUIVO BINÁRIO
 		fwrite(PI[0][j], sizeof(float), TELX, arqI);//ARQUIVO BINÁRIO
 		fwrite(u[0][j], sizeof(float), TELX, arqT);//ARQUIVO BINÁRIO
+		fwrite(mobilidade[j],sizeof(float),TELX,arqM);
+		fwrite(contorno[j],sizeof(float),TELX,arqC);
 	}
 	
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
-		printf("\n PS[50][10]=%f PS[50][50]=%f PS[50][20]=%f\n",  PS[0][10][5], PS[0][20][5],PS[0][30][5]);
+		printf("\n PS[1][1]=%f PS[10][10]=%f PS[100][100]=%f\n",  PS[0][1][1], PS[0][10][10],PS[0][100][100]);
 		//printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
 		//printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
 		//printf(" contorno=%f\n", contorno[500][500]);
-		printf(" u0[0][10]=%f u0[80][10]=%f\n", u[0][0][10], u[0][5][10]);
-		
+		printf(" u0[1][1]=%f u0[10][10]=%f u0[100][100]=%f\n", u[0][1][1], u[0][10][10], u[0][100][100]);
+	
 		
 
-/*	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
-		fprintf(arq,"phi:t=%.8f\n",(tempo*dt));
+	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
+	fprintf(arqb,"PS: t=%.8f\n",(tempo*dt));
 	for(int j=0;j<TELY-1;j++){
-		if (P[1][0][j]*P[1][0][j+1]<0)
-		fprintf(arq,"%d %f %d %f\n",j, P[1][0][j],j+1,P[1][0][j+1]);
+		//if (P[1][0][j]*P[1][0][j+1]<0)
+		fprintf(arqb,"%d %f\n",j, PS[1][j][TELX/2]);
 		}
-		fprintf(arq,"\n\n");
+		fprintf(arqb,"\n\n");
 
-		fprintf(arq3,"phi:t=%.8f\n",(tempo*dt));
+	/*fprintf(arq3,"phi:t=%.8f\n",(tempo*dt));
 	for(int i=0;i<TELY-1;i++){
 		if (P[1][i][0]*P[1][i+1][0]<0)
 		fprintf(arq3,"%d %f %d %f\n",i, P[1][i][0],i+1,P[1][i+1][0]);
 		}
 		fprintf(arq3,"\n\n");
-		
 		*/
+		
 	}
 /*if (tempo==37632)//tem que ser um múltiplo do valor do loop acima
 	{
 	cristal(contorno,ySim);//(arqb, contorno, ySim);
 	}*/
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
-atualizaTudo<<<numBlocks, numThreads >>>(PcS,PcS);
-atualizaTudo<<<numBlocks, numThreads >>>(PcL,PcL);
-atualizaTudo<<<numBlocks, numThreads >>>(PcI,PcI);
-atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
+atualizaTudofloat<<<numBlocks, numThreads >>>(PcS,PcS);
+atualizaTudofloat<<<numBlocks, numThreads >>>(PcL,PcL);
+atualizaTudofloat<<<numBlocks, numThreads >>>(PcI,PcI);
+atualizaTudofloat<<<numBlocks, numThreads >>>(uc,Xc);
 
 
 }//FIM DO LOOP PRINCIPAL
@@ -353,18 +326,19 @@ atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 //printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
-fclose(arq);
+fclose(arqM);
 fclose(arqb);
 fclose(arqS);
 fclose(arqL);
 fclose(arqI);
 fclose(arqT);
-fclose(curva1);
-fclose(curva2);
-fclose(curva3);
-fclose(curvaT1);
-fclose(curvaT2);
-fclose(curvaT3);
+fclose(arqC);
+//fclose(curva1);
+//fclose(curva2);
+//fclose(curva3);
+//fclose(curvaT1);
+//fclose(curvaT2);
+//fclose(curvaT3);
 
 for(int t=0;t<2;t++)
 {
@@ -381,12 +355,14 @@ for(int t=0;t<2;t++)
 	free(PI[t]);
 	free(u[t]);
 	free(X[t]);
+	free(mobilidade[t]);
 }
 free(PS);
 free(PL);
 free(PI);
 free(u);
 free(X);
+free(mobilidade);
 
 cudaFree(PcS);
 cudaFree(PcL);
