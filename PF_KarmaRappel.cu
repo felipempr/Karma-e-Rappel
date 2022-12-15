@@ -207,7 +207,7 @@ for(int t=0;t<2;t++)
 printf("\n%f %f, ",dx,dy);
 for(tempo=0;tempo<=telt;tempo++)
 {
-	printf("%d, ",tempo);
+	printf(".");
 	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
@@ -230,9 +230,9 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%1000==0)
+	if (tempo%10000==0)
 	{
-		
+		printf("%d ",tempo);
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
 		//COPIANDO VARIÁVEIS DA GPU
 		for (int t=0;t<2;t++)
