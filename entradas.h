@@ -23,22 +23,22 @@
 #define MISI 0.0//4.0
 #define MILI 0.0//0.0000000000010//20.0
 
-#define EPSILONSL 0.00000000000001//0.00000000000001
-#define EPSILONSI 0.00000000000001//0.00000000000002
-#define EPSILONLI 0.0000000000001//0.00000000000002
+#define EPSILONSL 0.00000000000002//0.00000000000001
+#define EPSILONSI 0.00000000000002//0.00000000000002
+#define EPSILONLI 0.0000000000002//0.00000000000002
 
-#define WSL 0.000000001//0.018
-#define WSI 0.000000001//0.018
-#define WLI 0.000000001//0.018
+#define WSL 45000.0//0.018
+#define WSI 45000.0//0.018
+#define WLI 450000.0//0.018
 
 #define LS 400000.0 //preto 1.0
 #define LI 0.0 //vermelho
-#define LL 0.0 //liquido MUDEI
+#define LL -400000.0//-400000.0 //liquido MUDEI
 #define TmS 600.0//600.0
 #define TmI 1.0//1.0
-#define TmL 1.0//1.0// não pode dividir por zero burrao
+#define TmL 600.0//1.0// não pode dividir por zero burrao
 
-#define T 520.0 //500.0
+#define T 550.0 //500.0
 //#define cv 0.1
 
 //#define TAU 0.2 //era 1.0
@@ -47,14 +47,14 @@
 //PARÂMETROS DE GEOMETRIA
 #define compL 0.0000001//0.0000001
 #define R 15		//raio inicial
-#define TELX 2000	//total de elementos na direção x 1250
-#define TELY 2000	//total de elementos na direção y 1250
+#define TELX 1500	//total de elementos na direção x 1250
+#define TELY 1500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 40000	//tempo total da simulação 250000
-#define dt 0.2 //0.001		//tamanho do intervalo entre os passos de tempo 0.02
+#define Ttot 20000	//tempo total da simulação 250000
+#define dt 0.4 //0.001		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
-#define EXISTE 0.99999	//valor da variável de fase no estado sólido
-#define N_EXISTE 0.000005	//valor da variável de fase no estado líquido
+#define EXISTE 1.0//0.99999	//valor da variável de fase no estado sólido
+#define N_EXISTE 0.0//0.000005	//valor da variável de fase no estado líquido
 //#define Ueq 0		//super-resfriamento de equilíbrio
 //#define Ui 0.45		//super-resfriamento inicial 0.65 normalmente
 //#define S 0.05		//grau de anisotropia

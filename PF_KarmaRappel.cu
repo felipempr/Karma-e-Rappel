@@ -281,12 +281,15 @@ for(tempo=0;tempo<=telt;tempo++)
 	}
 	
 	//IMPRESSÃO DA TEMPERATURA EM DETERMINADOS PONTOS PARA OBSERVAÇÃO DURANTE A EXECUÇÃO
-		printf("\n PS[1][1]=%f PS[10][10]=%f PS[100][100]=%f\n",  PS[0][1][1], PS[0][10][10],PS[0][100][100]);
+		printf("\n PS[1][1]=%f PS[900][450]=%f PS[450][900]=%f\n",  PS[0][1][1], PS[0][900][450],PS[0][450][900]);
 		//printf("\n PL[10][10]=%f PL[190][10]=%f PL[100][100]=%f\n",  PL[0][10][10], PL[0][190][10],PL[0][100][100]);
 		//printf("\n PI[10][10]=%f PI[190][10]=%f PI[100][100]=%f\n",  PI[0][10][10], PI[0][190][10],PI[0][100][100]);
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
 		//printf(" contorno=%f\n", contorno[500][500]);
 		printf(" u0[1][1]=%f u0[10][10]=%f u0[100][100]=%f\n", u[0][1][1], u[0][10][10], u[0][100][100]);
+		if (PS[0][10][10]!=PS[0][10][10]){
+		break;
+		}
 	
 		
 
@@ -294,7 +297,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	fprintf(arqb,"PS: t=%.8f\n",(tempo*dt));
 	for(int j=0;j<TELY-1;j++){
 		//if (P[1][0][j]*P[1][0][j+1]<0)
-		fprintf(arqb,"%d %f\n",j, PS[1][j][TELX/2]);
+		fprintf(arqb,"%d %f\n",j, PL[1][j][TELX/2]);
 		}
 		fprintf(arqb,"\n\n");
 

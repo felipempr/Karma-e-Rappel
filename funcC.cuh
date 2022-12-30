@@ -16,7 +16,7 @@ __device__ float MAC(float *Pa, float *Pc, int idx, double miAC);
 __device__ float MBC(float *Pb, float *Pc, int idx, double miBC);
 __device__ float DwDphi(float *Pa,float *Pb,float *Pc, int idx, float WAB,float WAC,float WBC,float MABf, float MACf, float MBCf);
 __device__ float lambda(float *Pa, float *Pb, float *Pc,float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float Tm1, float L2, float Tm2, float L3, float Tm3, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC);
-__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm);
+__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm, float MABf,float MACf,int FLAG);
 __global__ void Temp(float *u, float *X, float *Pa, float *Pb, float *delta, float Fox, float Foy, float L1,float L2);
 __device__ float X1(int idx,float *u, float *X, float *Pa,float *Pb, float Fox, float Foy, float L1,float L2);
 //__device__ float tau(float *P, int idx, float dx, float dy);
@@ -77,7 +77,7 @@ void inicializarfloat(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, flo
 void readBMP(unsigned char* data)
 {
     int v;
-    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste2000.bmp", "rb");
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste1500.bmp", "rb");
 
     if(f == NULL)
         throw "Argument Exception";
@@ -447,22 +447,22 @@ return X1;
 __device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float Tm1, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC)
 {
 float rhs;
-float MABf;//=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]));
-float MACf;//=miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]));
-float MBCf;//=miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
+//float MABf;//=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]));
+//float MACf;//=miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]));
+//float MBCf;//=miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
 
-if(Pa[idx]*Pb[idx]==0)
-MABf=miAB*0.5;
-else
-MABf=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]));
-if(Pa[idx]*Pc[idx]==0)
-MACf=miAC*0.5;
-else
-MACf=miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]));
-if(Pb[idx]*Pc[idx]==0)
-MBCf=miBC*0.5;
-else
-MBCf=miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
+//if(Pa[idx]*Pb[idx]==0)
+//MABf=miAB*0.5;
+//else
+//MABf=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]));
+//if(Pa[idx]*Pc[idx]==0)
+//MACf=miAC*0.5;
+//else
+//MACf=miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]));
+//if(Pb[idx]*Pc[idx]==0)
+//MBCf=miBC*0.5;
+//else
+//MBCf=miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
 //MABf=MAB(Pa,Pb,idx,miAB);
 //MACf=MAC(Pa,Pc,idx,miAC);
 //MBCf=MBC(Pb,Pc,idx,miBC);
@@ -487,9 +487,9 @@ MBCf=0;//MBC(Pb,Pc,idx,miBC);
 break;
 }*/
 
-float DwDphif=DwDphi(Pa,Pb,Pc,idx,WAB,WAC,WBC,MABf,MACf,MBCf);
-float frengf=freng(Pa,uf,idx,L1,Tm1);
-float gradengf=gradeng(Pa,Pb,Pc,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,FLAG1,FLAG2,FLAG3,MABf,MACf,MBCf);
+float DwDphif=DwDphi(Pa,Pb,Pc,idx,WAB,WAC,WBC,miAB,miAC,miBC);
+float frengf=freng(Pa,uf,idx,L1,Tm1,miAB,miAC,FLAG1);
+float gradengf=gradeng(Pa,Pb,Pc,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
 
 rhs=gradengf-DwDphif-frengf;
 
@@ -543,8 +543,8 @@ float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy,FLAG3);
 
 //gradeng=2.0*(epsilonAB)*(2.0*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+Pa[idx]*Pb[idx]*N2B-powf(Pb[idx],2)*N2A)+2.0*(epsilonAC)*(2.0*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc))+Pa[idx]*Pc[idx]*N2C-powf(Pc[idx],2));
 
-//gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A);//-MBCf* epsilonBC*(N2C+N2B);
-gradeng= MABf* epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ MACf* epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//-MBCf* epsilonBC*(Pb[idx]*N2C-Pc[idx]*N2B);
+//gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A)-MBCf* epsilonBC*(N2C+N2B);
+gradeng= MABf* epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ MACf* epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A)+MBCf* epsilonBC*(Pb[idx]*N2C-Pc[idx]*N2B);
 
 //1D
 //gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa);
@@ -564,15 +564,19 @@ float DwDphi;
 //DwDphi=2.0*WAB*(Pa[idx]*powf(Pb[idx],2)-powf(Pa[idx],2)*Pb[idx])+2.0*WAC*(Pa[idx]*powf(Pc[idx],2)-powf(Pa[idx],2)*Pc[idx])-2.0*WBC*(Pb[idx]*powf(Pc[idx],2)+powf(Pb[idx],2)*Pc[idx]);
 
 //DwDphi=MABf* WAB*(Pb[idx]-Pa[idx])+MACf* WAC*(Pc[idx]-Pa[idx])-MBCf* WBC*(Pc[idx]+Pb[idx]);
-DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx]);//-MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
+DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])+MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
 
 return DwDphi;
 }
 //FUNÇÃO QUE CALCULA h`f() Por enquanto incluida dentro de rhs
-__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm)
+__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm, float MABf, float MACf, int FLAG)
 {
 float freng;
-freng=MISL*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+//if (FLAG==2)
+//freng=MABf*(LAB*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)))+MACf*(LAC*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+//else
+freng=MISL*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+//o correto seria um calor latente de formação do sólido a partir de cada uma das fases, mas como não se forma a aprtir de substrato, ta ok.
 
 return freng;
 }
