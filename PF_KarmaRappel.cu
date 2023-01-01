@@ -32,7 +32,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 int main(void)
 {
-	bool FLAG;
+	//bool FLAG;
 	int i;
 	int j;
 	int tempo;
@@ -176,8 +176,6 @@ inicializarfloat(0,1,0,TELX,0,TELY,PI,N_EXISTE);
 	PS[0][i][0]=0.5;
 	PL[0][i][0]=0.5;
 }*/
-
-
 readBMP(bmp);
 cond_inicial(bmp,PL,PI,PS);
 /*for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
@@ -211,13 +209,13 @@ for(tempo=0;tempo<=telt;tempo++)
 	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
-	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,EPSILONSL,EPSILONSI,EPSILONLI,WSL,WSI,WLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,EPSILONLI,EPSILONSL,EPSILONSI,WLI,WSL,WSI,MILI,MISL,MISI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
-	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
+	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,LAMBDASL,LAMBDASI,LAMBDALI,SIGMASL,SIGMASI,SIGMALI,MISL,MISI,MILI,LSL,LSI,LLI,TmSL,TmSI,TmLI,0,2,1);
+	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,LAMBDALI,LAMBDASL,LAMBDASI,SIGMALI,SIGMASL,SIGMASI,MILI,MISL,MISI,LLI,LSL,LSI,TmLI,TmSL,TmSI,2,1,0);
+	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,LAMBDALI,LAMBDASI,LAMBDASL,SIGMALI,SIGMASI,SIGMASL,MILI,MISI,MISL,LLI,LSI,LSL,TmLI,TmSI,TmSL,1,2,0);
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
+	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy, LSL);
 	cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
@@ -230,10 +228,10 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%10000==0)
+	if (tempo%1000==0)
 	{
 		printf("%d ",tempo);
-		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
+		//FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
 		//COPIANDO VARIÁVEIS DA GPU
 		for (int t=0;t<2;t++)
 		{

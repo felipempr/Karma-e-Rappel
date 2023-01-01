@@ -20,23 +20,39 @@
 //#define GAMMAABC 0.001
 
 #define MISL 0.0000000010//20.0 
-#define MISI 0.0//4.0
-#define MILI 0.0//0.0000000000010//20.0
+#define MISI 0.0000000010//4.0
+#define MILI 0.0000000010//0.0000000000010//20.0
 
-#define EPSILONSL 0.00000000000002//0.00000000000001
-#define EPSILONSI 0.00000000000002//0.00000000000002
-#define EPSILONLI 0.0000000000002//0.00000000000002
+//#define EPSILONSL 0.00000000000002//0.00000000000001
+//#define EPSILONSI 0.00000000000002//0.00000000000002
+//#define EPSILONLI 0.0000000000002//0.00000000000002
 
-#define WSL 45000.0//0.018
-#define WSI 45000.0//0.018
-#define WLI 450000.0//0.018
+#define LAMBDASL 0.0000000006
+#define LAMBDASI 0.0000000006
+#define LAMBDALI 0.0000000006
 
-#define LS 400000.0 //preto 1.0
-#define LI 0.0 //vermelho
-#define LL -400000.0//-400000.0 //liquido MUDEI
-#define TmS 600.0//600.0
-#define TmI 1.0//1.0
-#define TmL 600.0//1.0// não pode dividir por zero burrao
+#define SIGMASL 0.0001
+#define SIGMASI 0.0001
+#define SIGMALI 0.001
+
+//#define WSL 45000.0//0.018
+//#define WSI 45000.0//0.018
+//#define WLI 450000.0//0.018
+
+#define LSL 400000.0
+#define LSI 0.0
+#define LLI 0.0
+
+#define TmSL 600.0
+#define TmSI 1.0
+#define TmLI 1.0
+
+//#define LS 400000.0 //preto 1.0
+//#define LI 0.0 //vermelho
+//#define LL -400000.0//-400000.0 //liquido MUDEI
+//#define TmS 600.0//600.0
+//#define TmI 1.0//1.0
+//#define TmL 600.0//1.0// não pode dividir por zero burrao
 
 #define T 550.0 //500.0
 //#define cv 0.1
@@ -50,7 +66,7 @@
 #define TELX 1500	//total de elementos na direção x 1250
 #define TELY 1500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 20000	//tempo total da simulação 250000
+#define Ttot 5000	//tempo total da simulação 250000
 #define dt 0.4 //0.001		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define EXISTE 1.0//0.99999	//valor da variável de fase no estado sólido
