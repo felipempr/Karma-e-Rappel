@@ -8,7 +8,7 @@ __device__ void atualizafloat(float *Q, float *K);
 __global__ void atualizaTudofloat(float *Q, float *K);
 __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB, double SIGMAAC,double SIGMABC, double miAB, double miAC,double miBC, double LAB, double LAC,double LBC, double TmAB, double TmAC,double TmBC, int FLAG1, int FLAG2, int FLAG3);
 __device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB,double SIGMAAC,double SIGMABC, double LAB, double LAC,double LBC, double TmAB, double TmAC,double TmBC, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC);
-__device__ float gradeng(float *Pa, float *Pb, float *Pc, int idx, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB,double SIGMAAC,double SIGMABC, double miAB, double miAC,double miBC);
+__device__ float gradeng(float *Pa, float *Pb, float *Pc, int idx, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB,double SIGMAAC,double SIGMABC, double miAB, double miAC,double miBC,int FLAG1);
 //__device__ float DaDphi(float *Pa, double *Pb,double *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, int FLAG1, int FLAG2, int FLAG3);
 //__device__ float divDaDNphi(float *Pa, double *Pb, double *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC,float constmAB,float constmAC, int FLAG1, int FLAG2, int FLAG3);
 //__device__ float MAB(float *Pa, float *Pb, int idx, double miAB);
@@ -448,12 +448,12 @@ __device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double
 {
 float rhs;
 
-if (FLAG1==2)
-miAB=-miAB;
+//if (FLAG1==2)
+//miAB=-miAB;
 
 //float DwDphif=DwDphi(Pa,Pb,Pc,idx,WAB,WAC,WBC,miAB,miAC,miBC);
 float frengf=freng(Pa,Pb,Pc,uf,idx,LAMBDAAB,LAMBDAAC,LAMBDABC,SIGMAAB,SIGMAAC,SIGMABC,LAB,LAC,LBC,TmAB,TmAC,TmBC,miAB,miAC,miBC,FLAG1);
-float gradengf=gradeng(Pa,Pb,Pc,idx,dx,dy,LAMBDAAB,LAMBDAAC,LAMBDABC,SIGMAAB,SIGMAAC,SIGMABC,miAB,miAC,miBC);
+float gradengf=gradeng(Pa,Pb,Pc,idx,dx,dy,LAMBDAAB,LAMBDAAC,LAMBDABC,SIGMAAB,SIGMAAC,SIGMABC,miAB,miAC,miBC,FLAG1);
 
 //rhs=gradengf-DwDphif-frengf;
 rhs=gradengf+frengf;
@@ -487,12 +487,13 @@ M=miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
 return M;
 }*/
 //FUNÇÃO QUE CALCULA A ENERGIA DO GRADIENTE
-__device__ float gradeng(float *Pa, float *Pb, float *Pc, int idx, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB,double SIGMAAC,double SIGMABC, double miAB, double miAC,double miBC)
+__device__ float gradeng(float *Pa, float *Pb, float *Pc, int idx, double dx, double dy, double LAMBDAAB, double LAMBDAAC,double LAMBDABC, double SIGMAAB,double SIGMAAC,double SIGMABC, double miAB, double miAC,double miBC, int FLAG)
 {
 float gradeng;
 
 float epsilonAB=LAMBDAAB*SIGMAAB;
 float epsilonAC=LAMBDAAC*SIGMAAC;
+float epsilonBC=LAMBDABC*SIGMABC;
 
 //float Pxa=Px(Pa,idx,dx,FLAG1);
 //float Pxb=Px(Pb,idx,dx,FLAG2);
@@ -509,10 +510,12 @@ float N2A=Pxx(Pa,idx,dx)+Pyy(Pa,idx,dy);
 float N2B=Pxx(Pb,idx,dx)+Pyy(Pb,idx,dy);
 float N2C=Pxx(Pc,idx,dx)+Pyy(Pc,idx,dy);
 
+if ((Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx])<0.5)
+miAB=miAC=miBC=MISL;
 //gradeng=2.0*(epsilonAB)*(2.0*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+Pa[idx]*Pb[idx]*N2B-powf(Pb[idx],2)*N2A)+2.0*(epsilonAC)*(2.0*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc))+Pa[idx]*Pc[idx]*N2C-powf(Pc[idx],2));
 
 //gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A)-MBCf* epsilonBC*(N2C+N2B);
-gradeng= miAB* epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ miAC* epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//+MBCf* epsilonBC*(Pb[idx]*N2C-Pc[idx]*N2B);
+gradeng= miAB* epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ miAC* epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A)+Pa[idx]*Pb[idx]*Pc[idx];
 
 //1D
 //gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa);
@@ -544,24 +547,33 @@ float mAB;
 float aAB;
 float mAC;
 float aAC;
+float mBC;
+float aBC;
 float lab;
 float lac;
-if (FLAG==2){
+float lbc;
+if (FLAG==2||FLAG==1){
 lab=-LAB;
 lac=-LAC;
+lbc=LBC;
 }
 else{
 lab=LAB;
 lac=LAC;
+lbc=LBC;
 }
-
 aAB=LAMBDAAB/(72.0*SIGMAAB);
 mAB=(6.0*aAB*lab*(TmAB-uf[idx]))/TmAB;
 
 aAC=LAMBDAAC/(72.0*SIGMAAC);
 mAC=(6.0*aAC*lac*(TmAC-uf[idx]))/TmAC;
 
-freng=-miAB*((Pa[idx]*Pb[idx])/(2.0*aAB))*(Pb[idx]-Pa[idx]-2.0*mAB*(TmAB-uf[idx]))-miAC*((Pa[idx]*Pc[idx])/(2.0*aAC))*(Pc[idx]-Pa[idx]-2.0*mAC*(TmAC-uf[idx]));
+//aBC=LAMBDABC/(72.0*SIGMABC);
+//mBC=(6.0*aBC*lbc*(TmBC-uf[idx]))/TmBC;
+if ((Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx])<0.5)
+miAB=miAC=miBC=MISL;
+
+freng=-miAB*((Pa[idx]*Pb[idx])/(2.0*aAB))*(Pb[idx]-Pa[idx]-2.0*mAB*(TmAB-uf[idx]))-miAC*((Pa[idx]*Pc[idx])/(2.0*aAC))*(Pc[idx]-Pa[idx]-2.0*mAC*(TmAC-uf[idx]));//+miBC*((Pb[idx]*Pc[idx])/(2.0*aBC))*(Pc[idx]+Pb[idx]-2.0*mBC*(TmBC-uf[idx]));
 //else
 //freng=MISL*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
 //o correto seria um calor latente de formação do sólido a partir de cada uma das fases, mas como não se forma a aprtir de substrato, ta ok.

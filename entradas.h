@@ -20,20 +20,20 @@
 //#define GAMMAABC 0.001
 
 #define MISL 0.0000000010//20.0 
-#define MISI 0.0000000010//4.0
-#define MILI 0.0000000010//0.0000000000010//20.0
+#define MISI 0.0//4.0
+#define MILI 0.0//0.0000000000010//20.0
 
 //#define EPSILONSL 0.00000000000002//0.00000000000001
 //#define EPSILONSI 0.00000000000002//0.00000000000002
 //#define EPSILONLI 0.0000000000002//0.00000000000002
 
-#define LAMBDASL 0.0000000006
-#define LAMBDASI 0.0000000006
-#define LAMBDALI 0.0000000006
+#define LAMBDASL 0.000000001
+#define LAMBDASI 0.000000001
+#define LAMBDALI 0.000000001
 
 #define SIGMASL 0.0001
-#define SIGMASI 0.0001
-#define SIGMALI 0.001
+#define SIGMASI 0.000023
+#define SIGMALI 0.0001
 
 //#define WSL 45000.0//0.018
 //#define WSI 45000.0//0.018
@@ -66,7 +66,7 @@
 #define TELX 1500	//total de elementos na direção x 1250
 #define TELY 1500	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 5000	//tempo total da simulação 250000
+#define Ttot 10000	//tempo total da simulação 250000
 #define dt 0.4 //0.001		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define EXISTE 1.0//0.99999	//valor da variável de fase no estado sólido
