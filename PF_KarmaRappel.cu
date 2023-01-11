@@ -230,7 +230,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%10000==0)
+	if (tempo%1000==0)
 	{
 		printf("%d ",tempo);
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
@@ -287,7 +287,7 @@ for(tempo=0;tempo<=telt;tempo++)
 		//A leitura é feita de baixo pra cima. A coordenada x é ok, mas a y é invertida.
 		//printf(" contorno=%f\n", contorno[500][500]);
 		printf(" u0[1][1]=%f u0[10][10]=%f u0[100][100]=%f\n", u[0][1][1], u[0][10][10], u[0][100][100]);
-		if (PS[0][10][10]!=PS[0][10][10]){
+		if (PS[0][500][500]!=PS[0][500][500]){
 		break;
 		}
 	

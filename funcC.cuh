@@ -329,7 +329,7 @@ __device__ void atualizafloat(float *Q, float *K)
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
 __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC,float WAB,float WAC,float WBC, double miAB, double miAC, double miBC, float L1, float Tm1, float L2, float Tm2, float L3, float Tm3, int FLAG1, int FLAG2, int FLAG3)
 {
-	//float M;
+	float M;
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
@@ -345,14 +345,24 @@ __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double
 	//if(contorno>0.3067&&contorno<0.3667)
 	//M=100.0*MISL;
 	//else
-	//M=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]))+miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]))+miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
+	if (Pa[idx]==1.0)
+	M=0.5*miAB+0.5*miAC;
+	else if (Pb[idx]==1.0)
+	M=0.5*miAB+0.5*miBC;
+	else if (Pc[idx]==1.0)
+	M=0.5*miAC+0.5*miBC;
+	else
+	M=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]))+miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]))+miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
+
+	if (M!=M)
+	M=0;
+	
 	//M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
 	
 	//float M=miAB*Pa[idx]*Pb[idx]+miAC*Pa[idx]*Pc[idx];
 	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
-	Pa[idx+TELX*TELY]=Pa[idx]+dt*(rhsf);//-(1.0/3.0)*lambdaf);
+	Pa[idx+TELX*TELY]=Pa[idx]+dt*M*(rhsf);//-(1.0/3.0)*lambdaf);
 		
-	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
 	}
 }
 
@@ -544,8 +554,9 @@ float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy,FLAG3);
 //gradeng=2.0*(epsilonAB)*(2.0*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+Pa[idx]*Pb[idx]*N2B-powf(Pb[idx],2)*N2A)+2.0*(epsilonAC)*(2.0*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc))+Pa[idx]*Pc[idx]*N2C-powf(Pc[idx],2));
 
 //gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A)-MBCf* epsilonBC*(N2C+N2B);
-gradeng= MABf* epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ MACf* epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A)+MBCf* epsilonBC*(Pb[idx]*N2C-Pc[idx]*N2B);
-
+gradeng=epsilonAB*(N2B-N2A)+epsilonAC*(N2C-N2A);//-epsilonBC*(N2C+N2B);
+//gradeng=epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//-epsilonBC*(Pb[idx]*N2C+Pc[idx]*N2B);
+//o proximo é mudar só o W e por maistempo
 //1D
 //gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa);
 //gradeng=epsilonAB*(Pxxb-Pxxa)+epsilonAC*(Pxxc-Pxxa)-epsilonBC*(Pxxc+Pxxb);
@@ -563,8 +574,11 @@ float DwDphi;
 //DwDphi=(9.0/EPSILON)*(2.0*WAB*Pa[idx]*powf(Pb[idx],2)+2.0*WAC*Pa[idx]*powf(Pc[idx],2))+(72.0/EPSILON)*(2.0*WAB*Pa[idx]*powf(Pb[idx],2)*Pc[idx]+2.0*WAC*Pa[idx]*powf(Pc[idx],2)*Pb[idx]);
 //DwDphi=2.0*WAB*(Pa[idx]*powf(Pb[idx],2)-powf(Pa[idx],2)*Pb[idx])+2.0*WAC*(Pa[idx]*powf(Pc[idx],2)-powf(Pa[idx],2)*Pc[idx])-2.0*WBC*(Pb[idx]*powf(Pc[idx],2)+powf(Pb[idx],2)*Pc[idx]);
 
-//DwDphi=MABf* WAB*(Pb[idx]-Pa[idx])+MACf* WAC*(Pc[idx]-Pa[idx])-MBCf* WBC*(Pc[idx]+Pb[idx]);
-DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])+MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
+DwDphi=MABf* WAB*(Pb[idx]-Pa[idx])+MACf* WAC*(Pc[idx]-Pa[idx]);//-MBCf* WBC*(Pc[idx]+Pb[idx]);
+//DwDphi=WAB*(Pb[idx]-Pa[idx])+ WAC*(Pc[idx]-Pa[idx])-WBC*(Pc[idx]+Pb[idx]);
+
+//DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])+MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
+//DwDphi=Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx]);// WBC*Pb[idx]*Pc[idx]*(Pc[idx]+Pb[idx]);
 
 return DwDphi;
 }
@@ -575,7 +589,7 @@ float freng;
 //if (FLAG==2)
 //freng=MABf*(LAB*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)))+MACf*(LAC*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
 //else
-freng=MISL*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+freng=(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
 //o correto seria um calor latente de formação do sólido a partir de cada uma das fases, mas como não se forma a aprtir de substrato, ta ok.
 
 return freng;
