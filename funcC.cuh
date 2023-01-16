@@ -335,16 +335,16 @@ __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 
 	float rhsf=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
-	//float lambdaf=lambda(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,L2,Tm2,L3,Tm3,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
+	float lambdaf=lambda(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,L2,Tm2,L3,Tm3,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
 	
 	//float Pxa=Px(Pa,idx,dx,FLAG1);
 	//float Pya=Py(Pa,idx,dy);
 
-	//float contorno=Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx];
+	float contorno=Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx];
 		
 	//if(contorno>0.3067&&contorno<0.3667)
 	//M=100.0*MISL;
-	//else
+	//else{
 	if (Pa[idx]==1.0)
 	M=0.5*miAB+0.5*miAC;
 	else if (Pb[idx]==1.0)
@@ -352,16 +352,15 @@ __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double
 	else if (Pc[idx]==1.0)
 	M=0.5*miAC+0.5*miBC;
 	else
-	M=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]))+miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]))+miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
-
+	M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
+	//M=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]))+miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]))+miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
+	//}
 	if (M!=M)
 	M=0;
 	
-	//M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
-	
 	//float M=miAB*Pa[idx]*Pb[idx]+miAC*Pa[idx]*Pc[idx];
 	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
-	Pa[idx+TELX*TELY]=Pa[idx]+dt*M*(rhsf);//-(1.0/3.0)*lambdaf);
+	Pa[idx+TELX*TELY]=Pa[idx]+dt*M*(rhsf-(1.0/3.0)*lambdaf);
 		
 	}
 }
@@ -554,7 +553,7 @@ float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy,FLAG3);
 //gradeng=2.0*(epsilonAB)*(2.0*(Pa[idx]*(Pxb*Pxb+Pyb*Pyb)-Pb[idx]*(Pxa*Pxb+Pya*Pyb))+Pa[idx]*Pb[idx]*N2B-powf(Pb[idx],2)*N2A)+2.0*(epsilonAC)*(2.0*(Pa[idx]*(Pxc*Pxc+Pyc*Pyc)-Pc[idx]*(Pxa*Pxc+Pya*Pyc))+Pa[idx]*Pc[idx]*N2C-powf(Pc[idx],2));
 
 //gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A)-MBCf* epsilonBC*(N2C+N2B);
-gradeng=epsilonAB*(N2B-N2A)+epsilonAC*(N2C-N2A);//-epsilonBC*(N2C+N2B);
+gradeng=epsilonAB*(N2B-N2A)+epsilonAC*(N2C-N2A)-epsilonBC*(N2C+N2B);
 //gradeng=epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//-epsilonBC*(Pb[idx]*N2C+Pc[idx]*N2B);
 //o proximo é mudar só o W e por maistempo
 //1D
@@ -574,11 +573,11 @@ float DwDphi;
 //DwDphi=(9.0/EPSILON)*(2.0*WAB*Pa[idx]*powf(Pb[idx],2)+2.0*WAC*Pa[idx]*powf(Pc[idx],2))+(72.0/EPSILON)*(2.0*WAB*Pa[idx]*powf(Pb[idx],2)*Pc[idx]+2.0*WAC*Pa[idx]*powf(Pc[idx],2)*Pb[idx]);
 //DwDphi=2.0*WAB*(Pa[idx]*powf(Pb[idx],2)-powf(Pa[idx],2)*Pb[idx])+2.0*WAC*(Pa[idx]*powf(Pc[idx],2)-powf(Pa[idx],2)*Pc[idx])-2.0*WBC*(Pb[idx]*powf(Pc[idx],2)+powf(Pb[idx],2)*Pc[idx]);
 
-DwDphi=MABf* WAB*(Pb[idx]-Pa[idx])+MACf* WAC*(Pc[idx]-Pa[idx]);//-MBCf* WBC*(Pc[idx]+Pb[idx]);
+//DwDphi=MABf* WAB*(Pb[idx]-Pa[idx])+MACf* WAC*(Pc[idx]-Pa[idx]);//-MBCf* WBC*(Pc[idx]+Pb[idx]);
 //DwDphi=WAB*(Pb[idx]-Pa[idx])+ WAC*(Pc[idx]-Pa[idx])-WBC*(Pc[idx]+Pb[idx]);
 
 //DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])+MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
-//DwDphi=Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx]);// WBC*Pb[idx]*Pc[idx]*(Pc[idx]+Pb[idx]);
+DwDphi=WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])-WBC*Pb[idx]*Pc[idx]*(Pc[idx]+Pb[idx]);
 
 return DwDphi;
 }
