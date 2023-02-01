@@ -212,13 +212,13 @@ for(tempo=0;tempo<=telt;tempo++)
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
 	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,EPSILONSL,EPSILONSI,EPSILONLI,WSL,WSI,WLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(PcL,PcI,PcS,uc,dx,dy,EPSILONLI,EPSILONSL,EPSILONSI,WLI,WSL,WSI,MILI,MISL,MISI,LL,TmL,LI,TmI,LS,TmS,2,1,0);
+	P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,EPSILONSL,EPSILONLI,EPSILONSI,WSL,WLI,WSI,MISL,MILI,MISI,LL,TmL,LS,TmS,LI,TmI,2,1,0);
 	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
-	cudaDeviceSynchronize();
+	//Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
+	//cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
 	/*cudaError_t erro = cudaGetLastError();        // Get error code
@@ -230,7 +230,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%1000==0)
+	if (tempo%10000==0)
 	{
 		printf("%d ",tempo);
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface
