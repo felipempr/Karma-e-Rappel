@@ -217,7 +217,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	//Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
+	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
 	//cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
@@ -230,7 +230,7 @@ for(tempo=0;tempo<=telt;tempo++)
 	*/
 	//printf("Teste 2");
 	//IMPRIMIR EM DETERMINADOS INTERVALOS DE TEMPO 	
-	if (tempo%10000==0)
+	if (tempo%1000==0)
 	{
 		printf("%d ",tempo);
 		FLAG=1;//flag pra pegar o valor do contorno e calcular a velocidade da interface

@@ -7,7 +7,7 @@ __global__ void atualizaTudo(double *Q, double *K);
 __device__ void atualizafloat(float *Q, float *K);
 __global__ void atualizaTudofloat(float *Q, float *K);
 __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC,double miAB, double miAC, double miBC, float L1, float Tm1, float L2, float Tm2, float L3, float Tm3, int FLAG1, int FLAG2, int FLAG3);
-__device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float Tm1, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC);
+__device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float L2, float L3, float Tm1, float Tm2, float Tm3, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC);
 __device__ float gradeng(float *Pa, float *Pb, float *Pc, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, int FLAG1, int FLAG2, int FLAG3, float MABf, float MACf, float MBCf);
 //__device__ float DaDphi(float *Pa, double *Pb,double *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC, int FLAG1, int FLAG2, int FLAG3);
 //__device__ float divDaDNphi(float *Pa, double *Pb, double *Pc, int idx, float dx, float dy, float gammaConstAB, float gammaConstAC,float constmAB,float constmAC, int FLAG1, int FLAG2, int FLAG3);
@@ -16,7 +16,7 @@ __device__ float MAC(float *Pa, float *Pc, int idx, double miAC);
 __device__ float MBC(float *Pb, float *Pc, int idx, double miBC);
 __device__ float DwDphi(float *Pa,float *Pb,float *Pc, int idx, float WAB,float WAC,float WBC,float MABf, float MACf, float MBCf);
 __device__ float lambda(float *Pa, float *Pb, float *Pc,float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float Tm1, float L2, float Tm2, float L3, float Tm3, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC);
-__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm, float MABf,float MACf,int FLAG);
+__device__ float freng(float *Pa, float *Pb, float *Pc, float *uf, int idx,  float L1, float L2, float L3, float Tm1, float Tm2, float Tm3, float MABf,float MACf,int FLAG);
 __global__ void Temp(float *u, float *X, float *Pa, float *Pb, float *delta, float Fox, float Foy, float L1,float L2);
 __device__ float X1(int idx,float *u, float *X, float *Pa,float *Pb, float Fox, float Foy, float L1,float L2);
 //__device__ float tau(float *P, int idx, float dx, float dy);
@@ -77,7 +77,7 @@ void inicializarfloat(int I1,int I2,int J1,int J2,int K1,int K2, float ***Q, flo
 void readBMP(unsigned char* data)
 {
     int v;
-    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste300.bmp", "rb");
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\teste1500.bmp", "rb");
 
     if(f == NULL)
         throw "Argument Exception";
@@ -334,36 +334,58 @@ __global__ void P1(float *Pa, float *Pb, float *Pc, float *uf, double dx, double
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
 
-	float rhsf=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
+	float rhsf=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,L2,L3,Tm1,Tm2,Tm3,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
 	//float lambdaf=lambda(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,L2,Tm2,L3,Tm3,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
-	
+	float Pxaf=Px(Pa,idx,dx,FLAG1);
+	float Pyaf=Py(Pa,idx,dy);
+	float Pxbf=Px(Pb,idx,dx,FLAG1);
+	float Pybf=Py(Pb,idx,dy);
+	float Pxcf=Px(Pc,idx,dx,FLAG1);
+	float Pycf=Py(Pc,idx,dy);
 	//float Pxa=Px(Pa,idx,dx,FLAG1);
 	//float Pya=Py(Pa,idx,dy);
-	/*
-	float contorno=Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx];
 	
-	if(contorno>0.3067&&contorno<0.3667)
+	/*float contorno=Pa[idx]*Pa[idx]+Pb[idx]*Pb[idx]+Pc[idx]*Pc[idx];
+	if(contorno<0.5)
 	M=MISL;
 	else{
-	
-	if (Pa[idx]==1.0)
-	M=0.5*miAB+0.5*miAC;
-	else if (Pb[idx]==1.0)
-	M=0.5*miAB+0.5*miBC;
-	else if (Pc[idx]==1.0)
-	M=0.5*miAC+0.5*miBC;
-	else
-	M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
-	}
 	*/
+	/*if (Pa[idx]==1.0){
+		if((Pxaf+Pyaf!=0)&&(Pxbf+Pybf!=0))
+		M=miAB;
+		else if((Pxaf+Pyaf!=0)&&(Pxcf+Pycf!=0))
+		M=miAC;
+		else
+		M=0;
+		}
+	else if (Pb[idx]==1.0){
+		if((Pxaf+Pyaf!=0)&&(Pxbf+Pybf!=0))
+		M=miAB;
+		else if((Pxbf+Pybf!=0)&&(Pxcf+Pycf!=0))
+		M=miBC;
+		else
+		M=0;
+		}
+	else if (Pc[idx]==1.0){
+		if((Pxaf+Pyaf!=0)&&(Pxcf+Pycf!=0))
+		M=miAC;
+		else if((Pxbf+Pybf!=0)&&(Pxcf+Pycf!=0))
+		M=miBC;
+		else
+		M=0;
+		}
+	else	
+	M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
+	//}
+	
 	//M=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]))+miAC*(Pa[idx]/(1-Pa[idx]))*(Pc[idx]/(1-Pc[idx]))+miBC*(Pb[idx]/(1-Pb[idx]))*(Pc[idx]/(1-Pc[idx]));
 	//M=(miAB*Pa[idx]*Pb[idx])/((1-Pa[idx])*(1-Pb[idx]))+(miAC*Pa[idx]*Pc[idx])/((1-Pa[idx])*(1-Pc[idx]))+(miBC*Pb[idx]*Pc[idx])/((1-Pb[idx])*(1-Pc[idx]));
-	//if (M!=M)
-	M=MISL;
+	if (M!=M)
+	M=0;*/
 
 	//float M=miAB*Pa[idx]*Pb[idx]+miAC*Pa[idx]*Pc[idx];
 	//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
-	Pa[idx+TELX*TELY]=Pa[idx]+dt*M*(rhsf);//-(1.0/3.0)*lambdaf);
+	Pa[idx+TELX*TELY]=Pa[idx]+dt*(rhsf);//-(1.0/N)*lambdaf);
 		
 	}
 }
@@ -456,7 +478,7 @@ return X1;
 
 
 //FUNCAO QUE CALCULA RHS NA GPU
-__device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float Tm1, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC)
+__device__ float rhs(float *Pa, float *Pb, float *Pc, float *uf, int idx, double dx, double dy, double epsilonAB, double epsilonAC, double epsilonBC, float WAB,float WAC,float WBC, float L1, float L2, float L3, float Tm1, float Tm2, float Tm3, int FLAG1, int FLAG2, int FLAG3,double miAB, double miAC, double miBC)
 {
 float rhs;
 //float MABf;//=miAB*(Pa[idx]/(1-Pa[idx]))*(Pb[idx]/(1-Pb[idx]));
@@ -500,10 +522,10 @@ break;
 }*/
 
 float DwDphif=DwDphi(Pa,Pb,Pc,idx,WAB,WAC,WBC,miAB,miAC,miBC);
-//float frengf=freng(Pa,uf,idx,L1,Tm1,miAB,miAC,FLAG1);
+float frengf=freng(Pa,Pb,Pc,uf,idx,L1,L2,L3,Tm1,Tm2,Tm3,miAB,miAC,FLAG1);
 float gradengf=gradeng(Pa,Pb,Pc,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC);
 
-rhs=-gradengf-DwDphif;//-frengf;
+rhs=-gradengf-DwDphif-frengf;
 
 //rhs=EPSILON*gradengf-(1.0/EPSILON)*DwDphif-(1.0/uf[idx])*frengf;
 //rhs=EPSILON*(-divDaDNphif-DaDphif)-(1.0/EPSILON)*DwDphif-(1.0/uf[idx])*frengf;
@@ -557,7 +579,7 @@ float N2C=Pxx(Pc,idx,dx,FLAG3)+Pyy(Pc,idx,dy,FLAG3);
 
 //gradeng=MABf* epsilonAB*(N2B-N2A)+MACf* epsilonAC*(N2C-N2A)-MBCf* epsilonBC*(N2C+N2B); ESTE NAO FUNCIONOU COM M INTERNO
 
-gradeng=epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//-epsilonBC*(Pb[idx]*N2C+Pc[idx]*N2B); ESTE É O QUE FUNCIONA, FOI TROCADO
+gradeng=MABf*epsilonAB*(Pa[idx]*N2B-Pb[idx]*N2A)+ MACf*epsilonAC*(Pa[idx]*N2C-Pc[idx]*N2A);//-epsilonBC*(Pb[idx]*N2C+Pc[idx]*N2B);// ESTE É O QUE FUNCIONA, FOI TROCADO
 //gradeng=N2A;//TENTATIVA FAZENDO FICAR IGUAL O DO JOHNSON
 //1D
 //gradeng=2.0*(gammaConstAB/constmAB)*(2.0*(Pa[idx]*Pxb*Pxb-Pb[idx]*Pxa*Pxb)+Pa[idx]*Pb[idx]*Pxxb-powf(Pb[idx],2)*Pxxa)+2.0*(gammaConstAC/constmAC)*(2.0*(Pa[idx]*Pxc*Pxc-Pc[idx]*Pxa*Pxc)+Pa[idx]*Pc[idx]*Pxxc-powf(Pc[idx],2)*Pxxa);
@@ -580,19 +602,35 @@ float DwDphi;
 //DwDphi=WAB*(Pb[idx]-Pa[idx])+ WAC*(Pc[idx]-Pa[idx])-WBC*(Pc[idx]+Pb[idx]);
 
 //DwDphi=MABf*  WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+  MACf*   WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx])+MBCf*   WBC*Pb[idx]*Pc[idx]*(Pc[idx]-Pb[idx]);
-DwDphi=WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+ WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx]);//+MISL*Pa[idx]*Pb[idx]*Pb[idx]*Pc[idx]*Pc[idx];//*MISL*Pa[idx]*Pb[idx]*Pb[idx]*Pc[idx]*Pc[idx];//-MBCf*WBC*Pb[idx]*Pc[idx]*(Pc[idx]+Pb[idx]); ESTE É O QUE FUNCIONA DESDE O COMEÇO
+DwDphi=MABf*WAB*Pa[idx]*Pb[idx]*(Pb[idx]-Pa[idx])+ MACf*WAC*Pa[idx]*Pc[idx]*(Pc[idx]-Pa[idx]);//-WBC*Pb[idx]*Pc[idx]*(Pc[idx]+Pb[idx]);// ESTE É O QUE FUNCIONA DESDE O COMEÇO
 //DwDphi=-powf(Pa[idx],2)+powf(Pa[idx],3)-3.0*Pa[idx]*Pb[idx]*Pb[idx]*Pc[idx]*Pc[idx];// TENTATIVA A PARTIR DA IDEIA DO JOHNSON
 
 return DwDphi;
 }
 //FUNÇÃO QUE CALCULA h`f() Por enquanto incluida dentro de rhs
-__device__ float freng(float *Pa, float *uf, int idx, float L, float Tm, float MABf, float MACf, int FLAG)
+__device__ float freng(float *Pa, float *Pb, float *Pc, float *uf, int idx, float L1, float L2, float L3, float Tm1, float Tm2, float Tm3, float MABf, float MACf, int FLAG)
 {
+float dx;
+float dy;
+dx=dy=compL/TELX;
+float Pxaf=Px(Pa,idx,dx,FLAG);
+float Pxbf=Px(Pb,idx,dx,FLAG);
+float Pxcf=Px(Pc,idx,dx,FLAG);
+float Pyaf=Py(Pa,idx,dy);
+float Pybf=Py(Pb,idx,dy);
+float Pycf=Py(Pc,idx,dy);
+float M;
 float freng;
+		if((Pxbf+Pybf!=0))
+		M=MABf;
+		else if((Pxcf+Pycf!=0))
+		M=MACf;
+		else
+		M=0;
 //if (FLAG==2)
-//freng=MABf*(-L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(LAC*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+//freng=(L1*((uf[idx]-Tm1)/(Tm1))*6.0*((1-Pa[idx]) -powf((1-Pa[idx]) ,2)));//+MACf*(LAC*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
 //else
-freng=(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
+freng=M*(L1*((uf[idx]-Tm1)/(Tm1))*6.0*(Pa[idx]-powf(Pa[idx],2)));//-(L2*((uf[idx]-Tm2)/(Tm2))*6.0*(Pb[idx]-powf(Pb[idx],2)))-(L3*((uf[idx]-Tm3)/(Tm3))*6.0*(Pc[idx]-powf(Pc[idx],2)));//+MACf*(L*((uf[idx]-Tm)/(Tm))*6.0*(Pa[idx]-powf(Pa[idx],2)));
 //o correto seria um calor latente de formação do sólido a partir de cada uma das fases, mas como não se forma a aprtir de substrato, ta ok.
 
 return freng;
@@ -603,7 +641,7 @@ __device__ float lambda(float *Pa, float *Pb, float *Pc, float *uf, int idx, dou
 {
 float lambda;
 
-lambda=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,Tm1,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC)+rhs(Pb,Pa,Pc,uf,idx,dx,dy,epsilonAB,epsilonBC,epsilonAC,WAB,WBC,WAC,L2,Tm2,FLAG2,FLAG1,FLAG3,miAB,miBC,miAC)+rhs(Pc,Pb,Pa,uf,idx,dx,dy,epsilonBC,epsilonAC,epsilonAB,WBC,WAC,WAB,L3,Tm3,FLAG3,FLAG2,FLAG1,miBC,miAC,miAB);
+lambda=rhs(Pa,Pb,Pc,uf,idx,dx,dy,epsilonAB,epsilonAC,epsilonBC,WAB,WAC,WBC,L1,L2,L3,Tm1,Tm2,Tm3,FLAG1,FLAG2,FLAG3,miAB,miAC,miBC)+rhs(Pb,Pa,Pc,uf,idx,dx,dy,epsilonAB,epsilonBC,epsilonAC,WAB,WBC,WAC,L2,L1,L3,Tm2,Tm1,Tm3,FLAG2,FLAG1,FLAG3,miAB,miBC,miAC)+rhs(Pc,Pb,Pa,uf,idx,dx,dy,epsilonBC,epsilonAC,epsilonAB,WBC,WAC,WAB,L3,L2,L1,Tm3,Tm2,Tm1,FLAG3,FLAG2,FLAG1,miBC,miAC,miAB);
 return lambda;
 }
 //FUNÇÕES QUE CALCULAM AS DERIVADAS DE P NA GPU
