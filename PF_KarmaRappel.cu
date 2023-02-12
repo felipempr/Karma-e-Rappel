@@ -96,10 +96,15 @@ int main(void)
 		for(int i=0;i<=TELX-1;i++){
 			contorno[i]=(float*)malloc(TELY*sizeof(float));
 	}
-	float **mobilidade;
+	/*float **mobilidade;
 	mobilidade=(float**)malloc(TELX*sizeof(float*));
 		for(int i=0;i<=TELX-1;i++){
 			mobilidade[i]=(float*)malloc(TELY*sizeof(float));
+	}*/
+	float **Mob;
+	Mob=(float**)malloc(TELX*sizeof(float*));
+		for(int i=0;i<=TELX-1;i++){
+			Mob[i]=(float*)malloc(TELY*sizeof(float));
 	}
 	
 	float *PcL;	
@@ -121,6 +126,8 @@ int main(void)
 	cudaMalloc((void **) &Xc, 2*TELX*TELY*sizeof(float));
 	float *deltac;
 	cudaMalloc((void **) &deltac, TELX*TELY*sizeof(float));
+	float *Mobc;
+	cudaMalloc((void **) &Mobc, TELX*TELY*sizeof(float));
 	
 
 	//CÁLCULO E IMPRESSÃO DE VARIÁVEIS DE SUPORTE
@@ -199,6 +206,7 @@ for(int t=0;t<2;t++)
 	cudaMemcpy(PcI+((t*TELX*TELY)+(i*TELX)), PI[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(uc+((t*TELX*TELY)+(i*TELX)), u[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	cudaMemcpy(Xc+((t*TELX*TELY)+(i*TELX)), X[t][i], TELY*sizeof(float), cudaMemcpyHostToDevice);
+	cudaMemcpy(Mobc+(i*TELX), Mob[i], TELY*sizeof(float), cudaMemcpyHostToDevice);
 	}
 }
 //cudaMemcpy(crhs, rhs, sizeof(float), cudaMemcpyDeviceToHost);
@@ -211,13 +219,13 @@ for(tempo=0;tempo<=telt;tempo++)
 	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
-	P1<<<numBlocks,numThreads>>>(PcS,PcL,PcI,uc,dx,dy,EPSILONSL,EPSILONSI,EPSILONLI,WSL,WSI,WLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(PcL,PcS,PcI,uc,dx,dy,EPSILONSL,EPSILONLI,EPSILONSI,WSL,WLI,WSI,MISL,MILI,MISI,LL,TmL,LS,TmS,LI,TmI,2,1,0);
-	P1<<<numBlocks,numThreads>>>(PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcS,PcL,PcI,uc,dx,dy,EPSILONSL,EPSILONSI,EPSILONLI,WSL,WSI,WLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcL,PcS,PcI,uc,dx,dy,EPSILONSL,EPSILONLI,EPSILONSI,WSL,WLI,WSI,MISL,MILI,MISI,LL,TmL,LS,TmS,LI,TmI,2,1,0);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcI,PcL,PcS,uc,dx,dy,EPSILONLI,EPSILONSI,EPSILONSL,WLI,WSI,WSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS
-	Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
+	//Temp<<<numBlocks, numThreads,4096>>>(uc, Xc, PcS, PcL, deltac, Fox, Foy,LS,LL);
 	//cudaDeviceSynchronize();
 	
 	//FUNÇÃO DE CAPTAÇÃO DE ERROS 
@@ -244,6 +252,7 @@ for(tempo=0;tempo<=telt;tempo++)
 			cudaMemcpy(PS[t][i], PcS+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(u[t][i], uc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			cudaMemcpy(X[t][i], Xc+((t*TELX*TELY)+(i*TELX)), TELY*sizeof(float), cudaMemcpyDeviceToHost);
+			cudaMemcpy(Mob[i], Mobc+(i*TELX), TELY*sizeof(float), cudaMemcpyDeviceToHost);
 			}
 		}
 		//fprintf(arq, "phi:t=%f\n",(tempo*dt));
@@ -252,7 +261,7 @@ for(tempo=0;tempo<=telt;tempo++)
 		
 		for(i=0;i<TELX;i++)
 		{
-			mobilidade[j][i]=(MISL*PS[0][j][i]*PL[0][j][i])/((1-PS[0][j][i])*(1-PL[0][j][i]))+(MISI*PS[0][j][i]*PI[0][j][i])/((1-PS[0][j][i])*(1-PI[0][j][i]))+(MILI*PL[0][j][i]*PI[0][j][i])/((1-PL[0][j][i])*(1-PI[0][j][i]));
+			//mobilidade[j][i]=(MISL*PS[0][j][i]*PL[0][j][i])/((1-PS[0][j][i])*(1-PL[0][j][i]))+(MISI*PS[0][j][i]*PI[0][j][i])/((1-PS[0][j][i])*(1-PI[0][j][i]))+(MILI*PL[0][j][i]*PI[0][j][i])/((1-PL[0][j][i])*(1-PI[0][j][i]));
 			//contorno[j][i]=PS[0][i][j]+PI[0][i][j]+PL[0][i][j];
 			contorno[j][i]=PL[0][j][i]*PL[0][j][i]+PS[0][j][i]*PS[0][j][i]+PI[0][j][i]*PI[0][j][i];//contorno[-j+TELY-1][i]
 			//if(PS[0][j][i]<=0.6&&j==(TELX/2)&&FLAG==1){
@@ -276,7 +285,7 @@ for(tempo=0;tempo<=telt;tempo++)
 		fwrite(PL[0][j], sizeof(float), TELX, arqL);//ARQUIVO BINÁRIO
 		fwrite(PI[0][j], sizeof(float), TELX, arqI);//ARQUIVO BINÁRIO
 		fwrite(u[0][j], sizeof(float), TELX, arqT);//ARQUIVO BINÁRIO
-		fwrite(mobilidade[j],sizeof(float),TELX,arqM);
+		fwrite(Mob[j],sizeof(float),TELX,arqM);
 		fwrite(contorno[j],sizeof(float),TELX,arqC);
 	}
 	
@@ -358,14 +367,14 @@ for(int t=0;t<2;t++)
 	free(PI[t]);
 	free(u[t]);
 	free(X[t]);
-	free(mobilidade[t]);
+	free(Mob[t]);
 }
 free(PS);
 free(PL);
 free(PI);
 free(u);
 free(X);
-free(mobilidade);
+free(Mob);
 
 cudaFree(PcS);
 cudaFree(PcL);
@@ -373,6 +382,7 @@ cudaFree(PcI);
 cudaFree(uc);
 cudaFree(Xc);
 cudaFree(deltac);
+cudaFree(Mobc);
 
 return 0;	
 }
