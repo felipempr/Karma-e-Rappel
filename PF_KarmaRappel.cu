@@ -43,7 +43,7 @@ int main(void)
 	double dx=compL/TELX;
 	double dy=compL/TELY;
 
-	float W=1.0;//6.0*(sigmaSL/DSL);
+	float W=6.0*(sigmaSL/DSL);
 	//float ySim[TELX];
 
 	unsigned char* bmp; 
