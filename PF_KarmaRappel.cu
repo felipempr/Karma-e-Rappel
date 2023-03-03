@@ -221,9 +221,9 @@ for(tempo=0;tempo<=telt;tempo++)
 	
 	//CÁLCULO DA VARIÁVEL DE FASE		
 	//acrescentar antes crhs e clamb para monitorar esses valores
-	P1<<<numBlocks,numThreads>>>(Mobc,PcS,PcL,PcI,uc,dx,dy,W,sigmaSL,sigmaSI,sigmaLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1);
-	P1<<<numBlocks,numThreads>>>(Mobc,PcL,PcS,PcI,uc,dx,dy,W,sigmaSL,sigmaLI,sigmaSI,MISL,MILI,MISI,LL,TmL,LS,TmS,LI,TmI,2,1,0);
-	P1<<<numBlocks,numThreads>>>(Mobc,PcI,PcL,PcS,uc,dx,dy,W,sigmaLI,sigmaSI,sigmaSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcS,PcL,PcI,uc,dx,dy,W,sigmaSL,sigmaSI,sigmaLI,MISL,MISI,MILI,LS,TmS,LL,TmL,LI,TmI,0,2,1,epsilonSL,epsilonSI,epsilonLI,WSL,WSI,WLI);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcL,PcS,PcI,uc,dx,dy,W,sigmaSL,sigmaLI,sigmaSI,MISL,MILI,MISI,LL,TmL,LS,TmS,LI,TmI,2,1,0,epsilonSL,epsilonLI,epsilonSI,WSL,WLI,WSI);
+	P1<<<numBlocks,numThreads>>>(Mobc,PcI,PcL,PcS,uc,dx,dy,W,sigmaLI,sigmaSI,sigmaSL,MILI,MISI,MISL,LI,TmI,LL,TmL,LS,TmS,1,2,0,epsilonLI,epsilonSI,epsilonSL,WLI,WSI,WSL);
 	cudaDeviceSynchronize();
 	//printf("Teste 1");
 	//CALCULO DO CAMPO DE TEMPERATURAS

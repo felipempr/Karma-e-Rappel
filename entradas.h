@@ -20,16 +20,24 @@
 //#define GAMMAABC 0.001
 
 #define MISL 0.000010//20.0 
-#define MISI 0.0//0.000010//4.0
-#define MILI 0.0//0.000010//0.0000000000010//20.0
+#define MISI 0.0//0.0000001//0.000010//4.0
+#define MILI 0.0//0.00000010//0.0000000000010//20.0
 
-#define sigmaSL 2.0//0.018 45000
-#define sigmaSI 1.6//0.018 5000
-#define sigmaLI 2.0//0.018 45000
+#define sigmaSL 1.0//0.018 45000
+#define sigmaSI 1.0//0.018 5000
+#define sigmaLI 1.0//0.018 45000
 
-#define LS 1000.0 //preto 1.0
+#define WSL 1.0
+#define WSI 1.0
+#define WLI 1.0
+
+#define epsilonSL 1.0
+#define epsilonSI 1.0
+#define epsilonLI 1.0
+
+#define LS 10.0 //preto 1.0
 #define LI 0.0 //vermelho
-#define LL -1000.0 //liquido MUDEI
+#define LL -10.0//100000.0 //liquido MUDEI
 #define TmS 600.0//600.0
 #define TmI 1.0//1.0
 #define TmL 600.0//600.0//1.0// não pode dividir por zero burrao78
@@ -43,10 +51,10 @@
 //PARÂMETROS DE GEOMETRIA
 #define compL 125.0//0.0000001
 #define R 15		//raio inicial
-#define TELX 1500	//total de elementos na direção x 1250
-#define TELY 1500	//total de elementos na direção y 1250
+#define TELX 1000	//total de elementos na direção x 1250
+#define TELY 1000	//total de elementos na direção y 1250
 //PARÂMETROS DE TEMPO
-#define Ttot 50000	//tempo total da simulação 250000
+#define Ttot 100000	//tempo total da simulação 250000
 #define dt 10.0//0.4 //0.001		//tamanho do intervalo entre os passos de tempo 0.02
 //PARÂMETROS DE SIMULAÇÃO
 #define EXISTE 0.999999	//valor da variável de fase no estado sólido
