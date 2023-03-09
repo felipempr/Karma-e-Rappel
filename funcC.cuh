@@ -4,27 +4,105 @@ __device__ float maior(float *delta);
 __device__ void deltaf(float *delta, float *X);
 __device__ void atualiza(float *Q, float *K);
 __global__ void atualizaTudo(float *Q, float *K);
-__global__ void P1(float *P, float *u, float dx, float dy, float lambda);
+__global__ void P1(bool *FLAG,float *P, float *u, float dx, float dy, float lambda);
 __global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy);
 __device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy);
-__device__ float tau(float *P, int idx, float dx, float dy);
-__device__ float E(float *P, int idx, float dx, float dy);
-__device__ float Px(float *P, int idx, float dx);
-__device__ float Py(float *P, int idx, float dy);
-__device__ float Pxx(float *P, int idx, float dx);
-__device__ float Pyy(float *P, int idx, float dy);
-__device__ float Pxy(float *P, int idx, float dx, float dy);
-__device__ float Pyx(float *P, int idx, float dx, float dy);
-__device__ float Epx(float *P, int idx, float dx, float dy);
-__device__ float Epy(float *P, int idx, float dx, float dy);
-__device__ float Ex(float *P, int idx, float dx, float dy);
-__device__ float Ey(float *P, int idx, float dx, float dy);
-__device__ float Epxpx(float *P, int idx, float dx, float dy);
-__device__ float Epypy(float *P, int idx, float dx, float dy);
-__device__ float Epxpy(float *P, int idx, float dx, float dy);
-__device__ float Epypx(float *P, int idx, float dx, float dy);
-__device__ float Expx(float *P,int idx,float dx, float dy);
-__device__ float Eypy(float *P,int idx,float dx, float dy);
+__device__ float tau(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float E(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Px(bool *FLAG,float *P, int idx, float dx);
+__device__ float Py(bool *FLAG,float *P, int idx, float dy);
+__device__ float Pxx(bool *FLAG,float *P, int idx, float dx);
+__device__ float Pyy(bool *FLAG,float *P, int idx, float dy);
+__device__ float Pxy(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Pyx(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epx(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epy(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Ex(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Ey(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epxpx(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epypy(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epxpy(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Epypx(bool *FLAG,float *P, int idx, float dx, float dy);
+__device__ float Expx(bool *FLAG,float *P,int idx,float dx, float dy);
+__device__ float Eypy(bool *FLAG,float *P,int idx,float dx, float dy);
+
+void readBMP(unsigned char* data);
+void cond_inicial(unsigned char *data, float ***QA, bool **FLAG);//,float ***QG, float ***QD, float ***QE);
+
+void readBMP(unsigned char* data)
+{
+    int v;
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\karma.bmp", "rb");
+
+    if(f == NULL)
+        throw "Argument Exception";
+
+    unsigned char info[54];
+    fread(info, sizeof(unsigned char), 54, f); // read the 54-byte header
+
+    // extract image height and width from header
+    int size_of_header=*(int*)&info[14];
+	int width = *(int*)&info[18];
+    int height = *(int*)&info[22];
+	int bits_per_pixel=*(int*)&info[28];
+	int number_of_colors=*(int*)&info[46];
+		
+	printf("largura:%d altura:%d\ntamanho do cabeçalho:%d\nbits por pixel:%d\nnumero de cores:%d\n",width, height,size_of_header,bits_per_pixel,number_of_colors);
+	
+/*
+    cout << endl;
+    cout << "  Name: " << filename << endl;
+    cout << " Width: " << width << endl;
+    cout << "Height: " << height << endl;
+	*/
+    int size = 3 * TELX * TELY; //era width*height
+    //unsigned char* data; 
+	//data=(unsigned char*)malloc(size*sizeof(unsigned char));
+	
+    // read the rest of the data at once
+    fread(data, sizeof(unsigned char), size, f); 
+	for(v = 0; v < size; v=v+3)
+    {
+            // flip the order of every 3 bytes
+            int tmp = data[v];
+            data[v] = data[v+2];
+            data[v+2] = tmp;
+			
+			//printf("R:%d G:%d B:%d\n",(int)data[v],data[v+1],data[v+2]);
+	}
+	printf("R:%d G:%d B:%d\n",(int)data[0],(int)data[1],(int)data[2]);
+	printf("R:%d G:%d B:%d\n",(int)data[1497],(int)data[1498],(int)data[1499]);
+	fclose(f);
+}
+
+void cond_inicial(unsigned char *data, float ***QA, bool **FLAG)//,float ***QG, float ***QD, float ***QE)
+{
+	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
+		//printf("%d ",i);	
+		if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
+		//printf("i=%d j=%d\n",(i/3)%TELX,i/(3*TELX));
+		QA[0][(i/3)%TELX][i/(3*TELX)]=SOLIDO;
+		FLAG[(i/3)%TELX][i/(3*TELX)]=true;//u[0][(i/3)%TELX][i/(3*TELX)]=T;
+		}
+		else if((int)data[i]==0&&(int)data[i+1]==0&&(int)data[i+2]==0){//preto  BGR
+		QA[0][(i/3)%TELX][i/(3*TELX)]=LIQUIDO;
+		FLAG[(i/3)%TELX][i/(3*TELX)]=true;
+		}
+		/*else if((int)data[i]==63&&(int)data[i+1]==72&&(int)data[i+2]==204){//azul
+		QC[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==255&&(int)data[i+1]==242&&(int)data[i+2]==0){//amarelo else if(*(int*)(data+i)==36&&*(int*)(data+(i+1))==28&&*(int*)(data+(i+2))==237)
+		QD[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}
+		else if((int)data[i]==34&&(int)data[i+1]==177&&(int)data[i+2]==76){//verde
+		QE[0][(i/3)%TELX][i/(3*TELX)]=1;
+		}*/
+		else{
+		QA[0][(i/3)%TELX][i/(3*TELX)]=LIQUIDO;
+		FLAG[(i/3)%TELX][i/(3*TELX)]=false;
+		}
+	}
+}
 
 /*__global__ void testef(float *teste)
 {
@@ -121,8 +199,17 @@ __device__ void atualiza(float *Q, float *K)
 }
 
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
-__global__ void P1(float *P, float *u, float dx, float dy, float lambda)
+__global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lambda)
 {
+	int index = blockIdx.x*blockDim.x+threadIdx.x;
+	int stride = blockDim.x*gridDim.x;
+	for (int idx = index; idx < TELX*TELY; idx += stride) {
+	
+	if(FLAG[idx]==false){
+	P[idx+TELX*TELY]=P[idx];
+	}
+	else{
+
 	float I;
 	float II;
 	float III;
@@ -143,23 +230,21 @@ __global__ void P1(float *P, float *u, float dx, float dy, float lambda)
 
 	//int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	//if(idx<TELX*TELY){
-	int index = blockIdx.x*blockDim.x+threadIdx.x;
-	int stride = blockDim.x*gridDim.x;
-	for (int idx = index; idx < TELX*TELY; idx += stride) {
+	
 
-		Ef = E(P, idx, dx, dy);
-		Exf = Ex(P, idx, dx, dy);
-		Eyf = Ey(P, idx, dx, dy);
-		Epxf = Epx(P, idx, dx, dy);
-		Epyf = Epy(P, idx, dx, dy);
-		Expxf = Expx(P, idx, dx, dy);
-		Eypyf = Eypy(P, idx, dx, dy);
-		Pxf = Px(P, idx, dx);
-		Pyf = Py(P, idx, dy);
-		Pxxf = Pxx(P, idx, dx);
-		Pyyf = Pyy(P, idx, dy);
-		Pxyf = Pxy(P, idx, dx, dy);
-		tauf = tau(P, idx, dx, dy);
+		Ef = 1.0;//E(FLAG, P, idx, dx, dy);
+		Exf = 0.0;//Ex(FLAG,P, idx, dx, dy);
+		Eyf = 0.0;//Ey(FLAG,P, idx, dx, dy);
+		Epxf = 0.0;//Epx(FLAG,P, idx, dx, dy);
+		Epyf = 0.0;//Epy(FLAG,P, idx, dx, dy);
+		Expxf = 0.0;//Expx(FLAG,P, idx, dx, dy);
+		Eypyf = 0.0;//Eypy(FLAG,P, idx, dx, dy);
+		Pxf = Px(FLAG,P, idx, dx);
+		Pyf = Py(FLAG,P, idx, dy);
+		Pxxf = Pxx(FLAG,P, idx, dx);
+		Pyyf = Pyy(FLAG,P, idx, dy);
+		Pxyf = Pxy(FLAG,P, idx, dx, dy);
+		tauf = TAU0;//tau(FLAG,P, idx, dx, dy);
 
 		I=powf(Ef, 2)*(Pxxf + Pyyf)+2.0*Ef*(Pxf*Exf+Pyf*Eyf);
 		II=2.0*Ef*Epxf*(Pxf*Pxxf+Pyf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epxf*Exf+Ef*Expxf);
@@ -172,7 +257,7 @@ __global__ void P1(float *P, float *u, float dx, float dy, float lambda)
 
 		//printf("P[5][5]=%f P[30][30]=%f\n", P[5 + 5 * TELX], P[30 + 30 * TELX]);
 		//printf("P1[5][5]=%f P1[30][30]=%f\n", P[5 + 5 * TELX + TELX*TELY], P[30 + 30 * TELX + TELX*TELY]);
-
+	}
 	}
 }
 __global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy)
@@ -263,19 +348,19 @@ return X1;
 }
 
 //FUNCAO QUE CALCULA TAU NA GPU
-__device__ float tau(float *P, int idx, float dx, float dy)
+__device__ float tau(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float tau;
-tau=TAU0*powf(E(P,idx,dx,dy),2.0);
+tau=TAU0*powf(E(FLAG,P,idx,dx,dy),2.0);
 return tau;
 }
 
 //FUNÇÃO QUE CALCULA E NA GPU
-__device__ float E(float *P, int idx, float dx, float dy)
+__device__ float E(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float E;
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 	if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	E=(1.0-3.0*S);
 	else
@@ -285,63 +370,97 @@ return E;
 
 
 //FUNÇÕES QUE CALCULAM AS DERIVADAS DE P NA GPU
-__device__ float Px(float *P, int idx, float dx)
+__device__ float Px(bool *FLAG, float *P, int idx, float dx)
 {
 float Px;
+
 if(idx%TELX==0)
 Px=(P[idx+1]-P[idx+1])/(2.0*dx);
 else if((idx+1)%TELX==0)
 Px=(P[idx-1]-P[idx-1])/(2.0*dx);
-else
-Px=(P[idx+1]-P[idx-1])/(2.0*dx);
+else{
+	if(FLAG[idx+1]==false)
+	Px=(P[idx-1]-P[idx-1])/(2.0*dx);
+	else if(FLAG[idx-1]==false)//POTENCIALMENTE PERIGOSO, COMO PRETENDO USAR SOMENTE UM RETANGULO NO MEIO NAO DEVE DAR PROBLEMA
+	Px=(P[idx+1]-P[idx+1])/(2.0*dx);
+	else
+	Px=(P[idx+1]-P[idx-1])/(2.0*dx);
+	}
 return Px;
 }
 
-__device__ float Py(float *P, int idx, float dy)
+__device__ float Py(bool *FLAG, float *P, int idx, float dy)
 {
 float Py;
+
 if(idx>=0&&idx<TELX)
 Py=(P[idx+TELX]-P[idx+TELX])/(2.0*dy);
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
 Py=(P[idx-TELX]-P[idx-TELX])/(2.0*dy);
-else
-Py=(P[idx+TELX]-P[idx-TELX])/(2.0*dy);
+else{
+	if(FLAG[idx+TELX]==false)
+	Py=(P[idx-TELX]-P[idx-TELX])/(2.0*dy);
+	else if(FLAG[idx-TELX]==false)
+	Py=(P[idx+TELX]-P[idx+TELX])/(2.0*dy);
+	else
+	Py=(P[idx+TELX]-P[idx-TELX])/(2.0*dy);
+	}
 return Py;
 }
 
 
-__device__ float Pxx(float *P, int idx, float dx)
+__device__ float Pxx(bool *FLAG, float *P, int idx, float dx)
 {
 float Pxx;
 if(idx%TELX==0)
 Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx);
 else if((idx+1)%TELX==0)
 Pxx=(P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx);
-else
-Pxx=(P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx);
+else{
+	if(FLAG[idx+1]==false)
+	Pxx=(P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx);
+	else if(FLAG[idx-1]==false)
+	Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx);
+	else
+	Pxx=(P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx);
+	}
 return Pxx;
 }
-__device__ float Pyy(float *P, int idx, float dy)
+__device__ float Pyy(bool *FLAG, float *P, int idx, float dy)
 {
 float Pyy;
 if(idx>=0&&idx<TELX)
 Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy);
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
 Pyy=(P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
-else
-Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
+else{
+	if(FLAG[idx+TELX]==false)
+	Pyy=(P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
+	else if(FLAG[idx-TELX]==false)
+	Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy);
+	else
+	Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
+	}
 return Pyy;
 }
 
-__device__ float Pxy(float *P, int idx, float dx, float dy)
-{
+__device__ float Pxy(bool *FLAG, float *P, int idx, float dx, float dy)
+{//MANTER LONGE DAS BORDAS
 float Pxy;
+float DireitoCima;
+float EsquerdoCima;
+float DireitoBaixo;
+float EsquerdoBaixo;
+
+
+
 if (idx>=0&&idx<TELX){
 		if (idx==0)
 			Pxy=(P[idx+TELX+1]-P[idx+TELX+1]-P[idx+TELX+1]+P[idx+TELX+1])/(4.0*dx*dy);
 		else if (idx==TELX-1)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 		else
+			//Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 			Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 	}
 	else if (idx>=TELX*(TELY-1)&&idx<TELX*TELY){
@@ -350,23 +469,57 @@ if (idx>=0&&idx<TELX){
 		else if (idx==(TELX*TELY)-1)
 			Pxy=(P[idx-1-TELX]-P[idx-1-TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else
+			
 			Pxy=(P[idx+1-TELX]-P[idx-1-TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 	}
 	else {
 		if (idx%TELX==0)
+			
 			Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if ((idx+1)%TELX==0)
+			//Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
-		else
-			Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
+		else{
+			if(FLAG[idx+1]==false){
+	DireitoCima=P[idx-1+TELX];
+	DireitoBaixo=P[idx-1-TELX];}
+	else{
+	DireitoCima=P[idx+1+TELX];
+	DireitoBaixo=P[idx+1-TELX];}
+	if(FLAG[idx-1]==false){
+	EsquerdoCima=P[idx+1+TELX];
+	EsquerdoBaixo=P[idx+1-TELX];}
+	else{
+	EsquerdoCima=P[idx-1+TELX];
+	EsquerdoBaixo=P[idx-1-TELX];}
+
+	if(FLAG[idx+TELX]==false){
+	DireitoCima=P[idx+1-TELX];
+	EsquerdoCima=P[idx-1-TELX];}
+	else{
+	DireitoCima=P[idx+1+TELX];
+	EsquerdoCima=P[idx-1+TELX];}
+
+	if(FLAG[idx-TELX]==false){
+	DireitoBaixo=P[idx+1+TELX];
+	EsquerdoBaixo=P[idx-1+TELX];}
+	else{
+	DireitoBaixo=P[idx+1-TELX];
+	EsquerdoBaixo=P[idx-1-TELX];}
+			//Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
+			Pxy=(DireitoCima-EsquerdoCima-DireitoBaixo+EsquerdoBaixo)/(4.0*dx*dy);}
 	}
 	return Pxy;
 }
 
 
-__device__ float Pyx(float *P, int idx, float dx, float dy)
+__device__ float Pyx(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 	float Pxy;
+			float DireitoCima;
+	float EsquerdoCima;
+	float DireitoBaixo;
+	float EsquerdoBaixo;
 	/*if(idx==0) //inferior esquerdo
 	Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1+TELX]+P[idx+1+TELX])/(4.0*dx*dy);	
 	else if(idx==TELX-1)//inferior direito
@@ -406,18 +559,46 @@ if (idx>=0&&idx<TELX){
 			Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if ((idx+1)%TELX==0)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
-		else
-			Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
+		else{
+			//Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
+	
+	if(FLAG[idx+1]==false){
+	DireitoCima=P[idx-1+TELX];
+	DireitoBaixo=P[idx-1-TELX];}
+	else{
+	DireitoCima=P[idx+1+TELX];
+	DireitoBaixo=P[idx+1-TELX];}
+	if(FLAG[idx-1]==false){
+	EsquerdoCima=P[idx+1+TELX];
+	EsquerdoBaixo=P[idx+1-TELX];}
+	else{
+	EsquerdoCima=P[idx-1+TELX];
+	EsquerdoBaixo=P[idx-1-TELX];}
+
+	if(FLAG[idx+TELX]==false){
+	DireitoCima=P[idx+1-TELX];
+	EsquerdoCima=P[idx-1-TELX];}
+	else{
+	DireitoCima=P[idx+1+TELX];
+	EsquerdoCima=P[idx-1+TELX];}
+
+	if(FLAG[idx-TELX]==false){
+	DireitoBaixo=P[idx+1+TELX];
+	EsquerdoBaixo=P[idx-1+TELX];}
+	else{
+	DireitoBaixo=P[idx+1-TELX];
+	EsquerdoBaixo=P[idx-1-TELX];}
+			Pxy=(DireitoCima-EsquerdoCima-DireitoBaixo+EsquerdoBaixo)/(4.0*dx*dy);}
 	}
 	return Pxy;
 }
 
-__device__ float Epx(float *P,int idx, float dx, float dy)
+__device__ float Epx(bool *FLAG, float *P,int idx, float dx, float dy)
 {
 float Epx;
-float Ef=E(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Ef=E(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epx=0;
@@ -428,12 +609,12 @@ return Epx;
 
 
 
-__device__ float Epy(float *P, int idx, float dx, float dy)//verificar se preciso declarar Pxf e Pyf
+__device__ float Epy(bool *FLAG, float *P, int idx, float dx, float dy)//verificar se preciso declarar Pxf e Pyf
 {
 float Epy;
-float Ef=E(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Ef=E(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epy=0;
 	else
@@ -441,37 +622,37 @@ if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 return Epy;
 }
 
-__device__ float Ex(float *P, int idx, float dx, float dy)
+__device__ float Ex(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Ex;
-float Epxf=Epx(P,idx,dx,dy);
-float Epyf=Epy(P,idx,dx,dy);
-float Pxxf=Pxx(P,idx,dx);
-float Pxyf=Pxy(P,idx,dx,dy);
+float Epxf=Epx(FLAG,P,idx,dx,dy);
+float Epyf=Epy(FLAG,P,idx,dx,dy);
+float Pxxf=Pxx(FLAG,P,idx,dx);
+float Pxyf=Pxy(FLAG,P,idx,dx,dy);
 
 Ex=Epxf*Pxxf+Epyf*Pxyf;
 return Ex;
 }
 
 
-__device__ float Ey(float *P, int idx, float dx, float dy)
+__device__ float Ey(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Ey;
-float Epxf=Epx(P,idx,dx,dy);
-float Epyf=Epy(P,idx,dx,dy);
-float Pyyf=Pyy(P,idx,dy);
-float Pyxf=Pyx(P,idx,dx,dy);
+float Epxf=Epx(FLAG,P,idx,dx,dy);
+float Epyf=Epy(FLAG,P,idx,dx,dy);
+float Pyyf=Pyy(FLAG,P,idx,dy);
+float Pyxf=Pyx(FLAG,P,idx,dx,dy);
 
 Ey=Epyf*Pyyf+Epxf*Pyxf;
 return Ey;
 }
 
-__device__ float Epxpx(float *P, int idx, float dx, float dy)
+__device__ float Epxpx(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Epxpx;
-float Epxf=Epx(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Epxf=Epx(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epxpx=0;
 	else
@@ -479,12 +660,12 @@ if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 return Epxpx;
 }
 
-__device__ float Epypy(float *P, int idx, float dx, float dy)
+__device__ float Epypy(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Epypy;
-float Epyf=Epy(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Epyf=Epy(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epypy=0;
 	else
@@ -493,12 +674,12 @@ return Epypy;
 }
 
 
-__device__ float Epxpy(float *P, int idx, float dx, float dy)
+__device__ float Epxpy(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Epxpy;
-float Epyf=Epy(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Epyf=Epy(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epxpy=0;
@@ -508,12 +689,12 @@ if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 return Epxpy;
 }
 
-__device__ float Epypx(float *P,int idx, float dx, float dy)
+__device__ float Epypx(bool *FLAG, float *P,int idx, float dx, float dy)
 {
 float Epypx;
-float Epxf=Epx(P,idx,dx,dy);
-float Pxf=Px(P,idx,dx);
-float Pyf=Py(P,idx,dy);
+float Epxf=Epx(FLAG,P,idx,dx,dy);
+float Pxf=Px(FLAG,P,idx,dx);
+float Pyf=Py(FLAG,P,idx,dy);
 
 if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 	Epypx=0;
@@ -523,26 +704,26 @@ if((Pxf<0.00000001&&Pxf>-0.00000001)&&(Pyf<0.00000001&&Pyf>-0.00000001))
 return Epypx;
 }
 
-__device__ float Expx(float *P,int idx,float dx, float dy)
+__device__ float Expx(bool *FLAG, float *P,int idx,float dx, float dy)
 {
 float Expx;
-float Epxpxf=Epxpx(P,idx,dx,dy);
-float Epypxf=Epypx(P,idx,dx,dy);
-float Pxxf=Pxx(P,idx,dx);
-float Pxyf=Pxy(P,idx,dx,dy);
+float Epxpxf=Epxpx(FLAG,P,idx,dx,dy);
+float Epypxf=Epypx(FLAG,P,idx,dx,dy);
+float Pxxf=Pxx(FLAG,P,idx,dx);
+float Pxyf=Pxy(FLAG,P,idx,dx,dy);
 
 Expx=Epxpxf*Pxxf+Epypxf*Pxyf;
 return Expx;
 }
 
 
-__device__ float Eypy(float *P, int idx, float dx, float dy)
+__device__ float Eypy(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float Eypy;
-float Epypyf=Epypy(P,idx,dx,dy);
-float Epxpyf=Epxpy(P,idx,dx,dy);
-float Pyyf=Pyy(P,idx,dy);
-float Pyxf=Pyx(P,idx,dx,dy);
+float Epypyf=Epypy(FLAG,P,idx,dx,dy);
+float Epxpyf=Epxpy(FLAG,P,idx,dx,dy);
+float Pyyf=Pyy(FLAG,P,idx,dy);
+float Pyxf=Pyx(FLAG,P,idx,dx,dy);
 
 Eypy=Epypyf*Pyyf+Epxpyf*Pyxf;
 return Eypy;
