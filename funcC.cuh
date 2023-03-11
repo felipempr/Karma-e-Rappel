@@ -3,11 +3,14 @@
 __device__ float maior(float *delta);
 __device__ void deltaf(float *delta, float *X);
 __device__ void atualiza(float *Q, float *K);
+__device__ void atualizaDouble(float *Q, double *K);
 __global__ void atualizaTudo(float *Q, float *K);
-__global__ void P1(bool *FLAG,float *P, float *u, float dx, float dy, float lambda);
-__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy);
-__device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy);
-__device__ float tau(bool *FLAG,float *P, int idx, float dx, float dy);
+__global__ void atualizaTudoDouble(float *Q, double *K);
+__global__ void P1(bool *FLAG,float *P, float *u, float dx, float dy);
+__global__ void Temp(bool *FLAG, float *u, float *X, float *P,float *delta, float Fox, float Foy);
+__device__ float X1(bool *FLAG, int idx,float *u, float *X, float *P, float Fox, float Foy);
+//__device__ float tau(bool *FLAG,float *P, int idx, float dx, float dy);
+__global__ void raio(float *k,bool *FLAG,float *P, float dx, float dy);
 __device__ float E(bool *FLAG,float *P, int idx, float dx, float dy);
 __device__ float Px(bool *FLAG,float *P, int idx, float dx);
 __device__ float Py(bool *FLAG,float *P, int idx, float dy);
@@ -32,7 +35,7 @@ void cond_inicial(unsigned char *data, float ***QA, bool **FLAG);//,float ***QG,
 void readBMP(unsigned char* data)
 {
     int v;
-    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\karma.bmp", "rb");
+    FILE* f = fopen("C:\\Users\\Felipe Ribeiro\\Pictures\\karma400.bmp", "rb");
 
     if(f == NULL)
         throw "Argument Exception";
@@ -104,46 +107,7 @@ void cond_inicial(unsigned char *data, float ***QA, bool **FLAG)//,float ***QG, 
 	}
 }
 
-/*__global__ void testef(float *teste)
-{
-int index = blockIdx.x*blockDim.x + threadIdx.x;
-	int stride = blockDim.x*gridDim.x;
-	for (int idx = index; idx < 4*4; idx += stride) {
-    teste[idx]=idx;
 
-if(idx>=0&&idx<4)
-		{
-				if(idx==0) //idx%TELX==0
-				teste[idx+4*4]=1;
-				else if(idx==(4-1))//(idx+1)%TELX==0
-				teste[idx+4*4]=2;
-				else
-				teste[idx+4*4]=3;
-				
-			}	
-
-else if(idx>=4*(4-1)&&idx<4*4)//linha de cima j==TELY-1
-			{
-				if(idx==4*(4-1))
-				teste[idx+4*4]=4;
-				else if(idx==(4*4)-1)
-				teste[idx+4*4]=5;
-				else
-				teste[idx+4*4]=6;
-			}	
-else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
-			{
-				if(idx%4==0)
-				teste[idx+4*4]=7;
-				else if((idx+1)%4==0)
-				teste[idx+4*4]=8;
-				else
-				teste[idx+4*4]=9;
-			}
-
-}
-}
-*/
 extern __shared__ float cache[];
 	
 __device__ void deltaf(float *delta, float *X)
@@ -186,7 +150,24 @@ __global__ void atualizaTudo(float *Q, float *K)
 {
 			atualiza(Q, K);
 }
+
+__global__ void atualizaTudoDouble(float *Q, double *K)
+{
+			atualizaDouble(Q, K);
+}
+
 __device__ void atualiza(float *Q, float *K)
+{
+//int idx=blockIdx.x * blockDim.x + threadIdx.x;
+//if(idx<TELX*TELY){
+	int index = blockIdx.x*blockDim.x + threadIdx.x;
+	int stride = blockDim.x*gridDim.x;
+	for (int idx = index; idx < TELX*TELY; idx += stride) {
+	Q[idx]=K[idx+TELX*TELY];
+}
+	//printf(" atu.");
+}
+__device__ void atualizaDouble(float *Q, double *K)
 {
 //int idx=blockIdx.x * blockDim.x + threadIdx.x;
 //if(idx<TELX*TELY){
@@ -199,7 +180,7 @@ __device__ void atualiza(float *Q, float *K)
 }
 
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
-__global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lambda)
+__global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy)
 {
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
@@ -226,7 +207,7 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lam
 	float Pxxf;
 	float Pyyf;
 	float Pxyf;
-	float tauf;
+	//float tauf;
 
 	//int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	//if(idx<TELX*TELY){
@@ -244,7 +225,7 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lam
 		Pxxf = Pxx(FLAG,P, idx, dx);
 		Pyyf = Pyy(FLAG,P, idx, dy);
 		Pxyf = Pxy(FLAG,P, idx, dx, dy);
-		tauf = TAU0;//tau(FLAG,P, idx, dx, dy);
+		//tauf = TAU0;//tau(FLAG,P, idx, dx, dy);
 
 		I=powf(Ef, 2)*(Pxxf + Pyyf)+2.0*Ef*(Pxf*Exf+Pyf*Eyf);
 		II=2.0*Ef*Epxf*(Pxf*Pxxf+Pyf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epxf*Exf+Ef*Expxf);
@@ -252,7 +233,8 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lam
 
 		//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
 
-		P[idx+TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+(E0*E0)*(I+II+III));
+		//P[idx+TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+(E0*E0)*(I+II+III));
+		P[idx+TELX*TELY]=P[idx]+(dt*M0)*((E0*E0)*(I+II+III)-a1*E0*((u[idx]-Ueq)*Cp/L)*(1.0-powf(P[idx],2.0))*(1.0-powf(P[idx],2.0))+P[idx]*(1.0-powf(P[idx],2.0)));
 	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
 
 		//printf("P[5][5]=%f P[30][30]=%f\n", P[5 + 5 * TELX], P[30 + 30 * TELX]);
@@ -260,7 +242,38 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy, float lam
 	}
 	}
 }
-__global__ void Temp(float *u, float *X, float *P,float *delta, float Fox, float Foy)
+__global__ void raio(float *k, bool *FLAG,float *P, float dx, float dy)
+{
+	int index = blockIdx.x*blockDim.x+threadIdx.x;
+	int stride = blockDim.x*gridDim.x;
+	for (int idx = index; idx < TELX*TELY; idx += stride) {
+if(FLAG[idx]==false)
+k[idx]=0;
+else{
+float Pxf;
+float Pyf;
+float Pxxf;
+float Pyyf;
+float Pxyf;
+//float theta;
+Pxf = Px(FLAG,P, idx, dx);
+Pyf = Py(FLAG,P, idx, dy);
+Pxxf = Pxx(FLAG,P, idx, dx);
+Pyyf = Pyy(FLAG,P, idx, dy);
+Pxyf = Pxy(FLAG,P, idx, dx, dy);
+float condicao=powf(abs(Pxf+Pyf),2);
+
+//theta=atan2(Pyf,Pxf);
+if((Pxf+Pyf)==0||condicao<powf(10.0,-10.0))
+k[idx]=0;
+else
+//k[idx]=theta;
+//k[idx]=((1.0/(2.0*fabs(Pxf+Pyf)))*((Pxxf+Pyyf)+cos(2.0*theta)*(Pyyf-Pxxf)-2.0*sin(2*theta)*Pxyf));
+k[idx]=-0.5*((Pxxf*powf(Pyf,2) + Pyyf*powf(Pxf,2) - 2.0*Pxf*Pyf*Pxyf)  /(powf((powf(Pxf,2)+powf(Pxf,2)),1.5)) );
+}
+}
+}
+__global__ void Temp(bool *FLAG, float *u, float *X, float *P,float *delta, float Fox, float Foy)
 {
 float m=0;
 //printf(" x");
@@ -268,7 +281,13 @@ float m=0;
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {	
-		X[idx+TELX*TELY]=X1(idx,u, X, P, Fox, Foy);
+
+	if(FLAG[idx]==false){
+	X[idx+TELX*TELY]=X[idx];
+	}
+	else{
+		X[idx+TELX*TELY]=X1(FLAG,idx,u, X, P, Fox, Foy);
+	}
 	}
 			__threadfence();
 			deltaf(delta,X);
@@ -283,7 +302,7 @@ float m=0;
 
 //FUNÇÃO QUE CALCULA NOVA TEMPERATURA NA GPU
 
-__device__ float X1(int idx,float *u, float *X, float *P, float Fox, float Foy)
+__device__ float X1(bool *FLAG, int idx,float *u, float *X, float *P, float Fox, float Foy)
 {
 float X1;
 /*
@@ -340,20 +359,30 @@ else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 				else if((idx+1)%TELX==0)
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));					//0<x<L
 				
+				else{
+				if(FLAG[idx+1]==false)
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx-1]==false)
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx+TELX]==false)
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx-TELX]==false)
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));				 //x=L
 				else
 				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));				 //x=L
+				}
 			}
 
 return X1;
 }
 
 //FUNCAO QUE CALCULA TAU NA GPU
-__device__ float tau(bool *FLAG, float *P, int idx, float dx, float dy)
+/*__device__ float tau(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 float tau;
 tau=TAU0*powf(E(FLAG,P,idx,dx,dy),2.0);
 return tau;
-}
+}*/
 
 //FUNÇÃO QUE CALCULA E NA GPU
 __device__ float E(bool *FLAG, float *P, int idx, float dx, float dy)
@@ -460,7 +489,6 @@ if (idx>=0&&idx<TELX){
 		else if (idx==TELX-1)
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 		else
-			//Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 			Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1+TELX]+P[idx-1+TELX])/(4.0*dx*dy);
 	}
 	else if (idx>=TELX*(TELY-1)&&idx<TELX*TELY){
@@ -477,15 +505,15 @@ if (idx>=0&&idx<TELX){
 			
 			Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1-TELX]+P[idx+1-TELX])/(4.0*dx*dy);
 		else if ((idx+1)%TELX==0)
-			//Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else{
-			if(FLAG[idx+1]==false){
+	if(FLAG[idx+1]==false){
 	DireitoCima=P[idx-1+TELX];
 	DireitoBaixo=P[idx-1-TELX];}
 	else{
 	DireitoCima=P[idx+1+TELX];
 	DireitoBaixo=P[idx+1-TELX];}
+
 	if(FLAG[idx-1]==false){
 	EsquerdoCima=P[idx+1+TELX];
 	EsquerdoBaixo=P[idx+1-TELX];}
