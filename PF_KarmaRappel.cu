@@ -37,6 +37,7 @@ int main(void)
 	//char p;
 		
 	int telt=Ttot/dt;
+	float jota;
 	float dx=(float)compL/(float)TELX;
 	float dy=(float)compL/(float)TELY;
 	//const float sigma=E/sqrt(2*W);
@@ -114,24 +115,24 @@ int main(void)
 //printf("d0=%f\n",(a1*E0/lambda));
 //printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
-	FILE *arq;
+	FILE *arqI;
 	FILE *arqP;
 	FILE *arqT;
-	FILE *arqR;
-	FILE *arq3;
+	//FILE *arqR;
+	FILE *arq3P;
 	FILE *arq3T;
 	FILE *arq3R;
 	
 	
 printf("\ntelt=%d\n",telt);
 
-arq=fopen("Wd0_9_posy","w");//para binário "wb"
-arq3=fopen("karma_perfil","w");//para binário "wb"
+arqI=fopen("karma_perfil_pos","w");//para binário "wb"
+arq3P=fopen("karma_perfil_P","w");//para binário "wb"
 arq3T=fopen("karma_perfil_T","w");//para binário "wb"
 arq3R=fopen("karma_perfil_R","w");//para binário "wb"
 arqP=fopen("Karma","wb");
 arqT=fopen("KarmaT","wb");
-arqR=fopen("KarmaR","wb");
+//arqR=fopen("KarmaR","wb");
 
 //INSERINDO VALOR INICIAL NAS MATRIZES
 
@@ -149,8 +150,8 @@ for (i=0;i<=R;i++)//(i=telx/2-r;i<=telx/2+r;i++)
 	}
 }
 */
-readBMP(bmp);
-cond_inicial(bmp,P,FLAG);
+//readBMP(bmp);
+cond_inicial(P,FLAG);
 
 for(int t=0;t<2;t++)
 {
@@ -186,7 +187,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%1000==0){
+	if (tempo%5000==0){
 		printf("%d, ",tempo);
 		for(int i=0;i<TELX;i++){
 		cudaMemcpy(kc+(i*TELX), k[i], TELY*sizeof(float), cudaMemcpyHostToDevice);
@@ -210,18 +211,51 @@ cudaDeviceSynchronize();
 	printf(" u0[5][0]=%f u0[30][0]=%f\n", u[0][5][0], u[0][30][0]);
 	printf(" P[0][5]=%f P[0][30]=%f\n", P[0][0][5], P[0][0][30]);
 
-	if (P[0][100][100]!=P[0][100][100]){
+	if (P[0][TELX/2][TELY/2]!=P[0][TELX/2][TELY/2]){
 		break;
 		}
-if (tempo==5000){
+//IMPRESSÃO DO PERFIL DE VARIÁVEL DE FASE, TEMPERATURA, CURVATURA E VELOCIDADE NA VERTICAL
+		fprintf(arq3P,"phi:t=%.8f\n",(tempo*dt));
+		fprintf(arq3T,"T:t=%.8f\n",(tempo*dt));
+		//fprintf(arq3R,"R:t=%.8f\n",(tempo*dt));
+	for(int j=TELX/2;j<TELX-1;j++){
+	//for(int j=0;j<TELX-1;j++){
+		fprintf(arq3P,"%f %f\n",j*dx, P[1][TELX/2][j]); //PERFIL DA VARIAVEL DE FASE
+		//fprintf(arq3P,"%f %f\n",j*dx, P[1][0][j]); //PERFIL DA VARIAVEL DE FASE
+		fprintf(arq3T,"%f %f\n",j*dx, X[1][TELX/2][j]); //PERFIL DE TEMPERATURA
+		//fprintf(arq3T,"%f %f\n",j*dx, X[1][0][j]); //PERFIL DE TEMPERATURA
+		
+		
+		if (P[1][TELX/2][j]*P[1][TELX/2][j+1]<0){
+		//if (P[1][0][j]*P[1][0][j+1]<0){
+			jota=(j+1)-((P[1][TELX/2][j+1]*dx)/(P[1][TELX/2][j+1]-P[1][TELX/2][j]));
+			//jota=(j+1)-((P[1][0][j+1]*dx)/(P[1][0][j+1]-P[1][0][j]));
+			fprintf(arq3R,"%f %f\n",(tempo*dt), k[TELX/2][j]); //PERFIL DE CURVATURA
+			//fprintf(arq3R,"%f %f\n",(tempo*dt), k[0][j]); //PERFIL DE CURVATURA
+			fprintf(arqI,"%f %f\n",tempo*dt,jota*dx); //POSIÇÃO DA INTERFACE
+		}
+		}
+		fprintf(arq3P,"\n\n");
+		fprintf(arq3T,"\n\n");
+		
+		printf("ok");
+//IMPRESSÃO DO CAMPO DE FASES
+	for (int i = 0; i < TELX; i++) {
+		fwrite(P[0][i], sizeof(float), TELY, arqP);
+		fwrite(X[1][i], sizeof(float), TELY, arqT);
+		//fwrite(k[i], sizeof(float), TELY, arqR);
+		}
+}
+/*
 	//IMPRESSÃO DAS POSIÇÕES E TEMPO DA PONTA DA DENDRITA NAS DIREÇÕES X E Y
 		fprintf(arq3,"phi:t=%.8f\n",(tempo*dt));
 		fprintf(arq3T,"T:t=%.8f\n",(tempo*dt));
-		fprintf(arq3R,"R:t=%.8f\n",(tempo*dt));
-	for(int j=0;j<TELY-1;j++){
+		//fprintf(arq3R,"R:t=%.8f\n",(tempo*dt));
+	for(int j=TELX/2;j<TELY-1;j++){
 		fprintf(arq3,"%d %f\n",j, P[1][TELX/2][j]);
 		fprintf(arq3T,"%d %f\n",j, X[1][TELX/2][j]);
-		fprintf(arq3R,"%d %f\n",j, k[j][TELX/2]);
+		//fprintf(arq3R,"%d %f\n",j, k[j][TELX/2]);
+		*/
 		/*
 		if (P[1][0][j]*P[1][0][j+1]<0)
 		fprintf(arq,"%d %f %d %f\n",j, P[1][0][j],j+1,P[1][0][j+1]);
@@ -229,8 +263,8 @@ if (tempo==5000){
 		//fprintf(arq3,"\n\n");
 		//fprintf(arq3T,"\n\n");
 		//fprintf(arq3R,"\n\n");
-		}
-		}
+		//}
+		
 		/*
 		fprintf(arq3,"phi:t=%.8f\n",(tempo*dt));
 	for(int i=0;i<TELY-1;i++){
@@ -240,12 +274,12 @@ if (tempo==5000){
 		fprintf(arq3,"\n\n");
 		*/
 //IMPRESSÃO DO CAMPO DE FASES
-	for (int i = 0; i < TELX; i++) {
+	/*for (int i = 0; i < TELX; i++) {
 		fwrite(P[0][i], sizeof(float), TELY, arqP);
 		fwrite(X[1][i], sizeof(float), TELY, arqT);
-		fwrite(k[i], sizeof(float), TELY, arqR);
+		//fwrite(k[i], sizeof(float), TELY, arqR);
 		}
-}
+}*/
 //ATUALIZAR VARIÁVEIS PARA O PRÓXIMO CICLO
 
 atualizaTudo<<<numBlocks, numThreads >>>(Pc,Pc);
@@ -257,11 +291,11 @@ atualizaTudo<<<numBlocks, numThreads >>>(uc,Xc);
 printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 
-fclose(arq);
+fclose(arqI);
 fclose(arqP);
 fclose(arqT);
-fclose(arqR);
-fclose(arq3);
+//fclose(arqR);
+fclose(arq3P);
 fclose(arq3T);
 fclose(arq3R);
 

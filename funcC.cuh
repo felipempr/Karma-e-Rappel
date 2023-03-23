@@ -30,7 +30,7 @@ __device__ float Expx(bool *FLAG,float *P,int idx,float dx, float dy);
 __device__ float Eypy(bool *FLAG,float *P,int idx,float dx, float dy);
 
 void readBMP(unsigned char* data);
-void cond_inicial(unsigned char *data, float ***QA, bool **FLAG);//,float ***QG, float ***QD, float ***QE);
+void cond_inicial(float ***QA, bool **FLAG);//,float ***QG, float ***QD, float ***QE);
 
 void readBMP(unsigned char* data)
 {
@@ -78,8 +78,9 @@ void readBMP(unsigned char* data)
 	fclose(f);
 }
 
-void cond_inicial(unsigned char *data, float ***QA, bool **FLAG)//,float ***QG, float ***QD, float ***QE)
-{
+void cond_inicial(float ***QA, bool **FLAG)//,float ***QG, float ***QD, float ***QE)
+
+/*{
 	for(int i=0;i<=3*TELX*TELY-3;i=i+3){
 		//printf("%d ",i);	
 		if((int)data[i]==255&&(int)data[i+1]==255&&(int)data[i+2]==255){//branco
@@ -99,12 +100,26 @@ void cond_inicial(unsigned char *data, float ***QA, bool **FLAG)//,float ***QG, 
 		}
 		else if((int)data[i]==34&&(int)data[i+1]==177&&(int)data[i+2]==76){//verde
 		QE[0][(i/3)%TELX][i/(3*TELX)]=1;
-		}*/
+		}
 		else{
 		QA[0][(i/3)%TELX][i/(3*TELX)]=LIQUIDO;
 		FLAG[(i/3)%TELX][i/(3*TELX)]=false;
 		}
 	}
+}*/
+{
+for(int i=0;i<TELX;i++){
+	for(int j=0;j<TELX;j++){
+	if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R))
+	QA[0][i][j]=SOLIDO;
+	}
+}
+/*for(int i=0;i<TELX;i++){
+	for(int j=0;j<TELX;j++){
+	if((pow((i-0),2)+pow((j-0),2))<=(R*R))
+	QA[0][i][j]=SOLIDO;
+	}
+}*/
 }
 
 
@@ -182,63 +197,66 @@ __device__ void atualizaDouble(float *Q, double *K)
 //FUNÇÃO QUE CALCULA NOVA VARIÁVEL DE FASE na GPU
 __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy)
 {
+	//float I;
+	//float II;
+	//float III;
+
+	//float Ef;
+	//float Exf;
+	//float Eyf;
+	//float Epxf;
+	//float Epyf;
+	//float Expxf;
+	//float Eypyf;
+	//float Pxf;
+	//float Pyf;
+	float Pxxf;
+	float Pyyf;
+	//float Pxyf;
+	//float tauf;
+
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
-	
+	/*
 	if(FLAG[idx]==false){
 	P[idx+TELX*TELY]=P[idx];
 	}
+	else{*/
+	if(P[idx-1]==P[idx+1]&&P[idx+TELX]==P[idx-TELX])	
+	P[idx+TELX*TELY]=P[idx];
 	else{
-
-	float I;
-	float II;
-	float III;
-
-	float Ef;
-	float Exf;
-	float Eyf;
-	float Epxf;
-	float Epyf;
-	float Expxf;
-	float Eypyf;
-	float Pxf;
-	float Pyf;
-	float Pxxf;
-	float Pyyf;
-	float Pxyf;
-	//float tauf;
-
 	//int idx=blockIdx.x * blockDim.x + threadIdx.x;
 	//if(idx<TELX*TELY){
 	
 
-		Ef = 1.0;//E(FLAG, P, idx, dx, dy);
-		Exf = 0.0;//Ex(FLAG,P, idx, dx, dy);
-		Eyf = 0.0;//Ey(FLAG,P, idx, dx, dy);
-		Epxf = 0.0;//Epx(FLAG,P, idx, dx, dy);
-		Epyf = 0.0;//Epy(FLAG,P, idx, dx, dy);
-		Expxf = 0.0;//Expx(FLAG,P, idx, dx, dy);
-		Eypyf = 0.0;//Eypy(FLAG,P, idx, dx, dy);
-		Pxf = Px(FLAG,P, idx, dx);
-		Pyf = Py(FLAG,P, idx, dy);
+		//Ef = E(FLAG, P, idx, dx, dy);
+		//Exf = 0.0;//Ex(FLAG,P, idx, dx, dy);
+		//Eyf = 0.0;//Ey(FLAG,P, idx, dx, dy);
+		//Epxf = 0.0;//Epx(FLAG,P, idx, dx, dy);
+		//Epyf = 0.0;//Epy(FLAG,P, idx, dx, dy);
+		//Expxf = 0.0;//Expx(FLAG,P, idx, dx, dy);
+		//Eypyf = 0.0;//Eypy(FLAG,P, idx, dx, dy);
+		//Pxf = Px(FLAG,P, idx, dx);
+		//Pyf = Py(FLAG,P, idx, dy);
 		Pxxf = Pxx(FLAG,P, idx, dx);
 		Pyyf = Pyy(FLAG,P, idx, dy);
-		Pxyf = Pxy(FLAG,P, idx, dx, dy);
+		//Pxyf = Pxy(FLAG,P, idx, dx, dy);
 		//tauf = TAU0;//tau(FLAG,P, idx, dx, dy);
 
-		I=powf(Ef, 2)*(Pxxf + Pyyf)+2.0*Ef*(Pxf*Exf+Pyf*Eyf);
-		II=2.0*Ef*Epxf*(Pxf*Pxxf+Pyf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epxf*Exf+Ef*Expxf);
-		III=2.0*Ef*Epyf*(Pyf*Pyyf+Pxf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epyf*Eyf+Ef*Eypyf);
+		//I=powf(Ef, 2)*(Pxxf + Pyyf)+2.0*Ef*(Pxf*Exf+Pyf*Eyf);
+		//II=2.0*Ef*Epxf*(Pxf*Pxxf+Pyf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epxf*Exf+Ef*Expxf);
+		//III=2.0*Ef*Epyf*(Pyf*Pyyf+Pxf*Pxyf)+(powf(Pxf,2)+powf(Pyf,2))*(Epyf*Eyf+Ef*Eypyf);
 
 		//P1=P[0][i][j]-M*dt*((pow(P[0][i][j],3.0)-1.5*pow(P[0][i][j],2.0)+0.5*P[0][i][j])+(noise(P,i,j)+(0.9/M_PI)*atan(10*(T[0][i][j]-TM)))*(-pow(P[0][i][j],2.0)+P[0][i][j])-E0*(I+II+III));
 
 		//P[idx+TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+(E0*E0)*(I+II+III));
-		P[idx+TELX*TELY]=P[idx]+(dt*M0)*((E0*E0)*(I+II+III)-a1*E0*((u[idx]-Ueq)*Cp/L)*(1.0-powf(P[idx],2.0))*(1.0-powf(P[idx],2.0))+P[idx]*(1.0-powf(P[idx],2.0)));
+		P[idx+TELX*TELY]=P[idx]+(dt*M0)*((E0*E0)*((Pxxf + Pyyf))-a1*E0*((u[idx]-Ueq))*(1.0-powf(P[idx],2.0))*(1.0-powf(P[idx],2.0))+P[idx]*(1.0-powf(P[idx],2.0)));
 	//P[idx + TELX*TELY]=P[idx]+(dt/tauf)*((P[idx]-lambda*u[idx]*(1.0-powf(P[idx],2.0)))*(1.0-powf(P[idx],2.0))+E0*(I+II+III));
 
 		//printf("P[5][5]=%f P[30][30]=%f\n", P[5 + 5 * TELX], P[30 + 30 * TELX]);
 		//printf("P1[5][5]=%f P1[30][30]=%f\n", P[5 + 5 * TELX + TELX*TELY], P[30 + 30 * TELX + TELX*TELY]);
+	//}
 	}
 	}
 }
@@ -269,10 +287,16 @@ k[idx]=0;
 else
 //k[idx]=theta;
 //k[idx]=((1.0/(2.0*fabs(Pxf+Pyf)))*((Pxxf+Pyyf)+cos(2.0*theta)*(Pyyf-Pxxf)-2.0*sin(2*theta)*Pxyf));
-k[idx]=-0.5*((Pxxf*powf(Pyf,2) + Pyyf*powf(Pxf,2) - 2.0*Pxf*Pyf*Pxyf)  /(powf((powf(Pxf,2)+powf(Pxf,2)),1.5)) );
+k[idx]=1.0/(-0.5*((Pxxf*powf(Pyf,2) + Pyyf*powf(Pxf,2) - 2.0*Pxf*Pyf*Pxyf)  /(powf((powf(Pxf,2)+powf(Pyf,2)),1.5)) ));
 }
 }
 }
+
+
+
+
+
+
 __global__ void Temp(bool *FLAG, float *u, float *X, float *P,float *delta, float Fox, float Foy)
 {
 float m=0;
@@ -282,13 +306,15 @@ float m=0;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {	
 
-	if(FLAG[idx]==false){
+	/*if(FLAG[idx]==false){
 	X[idx+TELX*TELY]=X[idx];
-	}
-	else{
+	}*/
+	/*if(X[idx-1]==X[idx+1]&&X[idx+TELX]==X[idx-TELX])	//A NOITE TIRAR ESTE TRECHO
+	X[idx+TELX*TELY]=X[idx];
+	else{*/
 		X[idx+TELX*TELY]=X1(FLAG,idx,u, X, P, Fox, Foy);
 	}
-	}
+	
 			__threadfence();
 			deltaf(delta,X);
 			__threadfence();			
@@ -330,46 +356,46 @@ return X1;*/
 if(idx>=0&&idx<TELX)//linha de baixo j==0
 			{
 				if(idx==0) //idx%TELX==0
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==TELX-1)//(idx+1)%TELX==0
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
 			}	
 
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)//linha de cima j==TELY-1
 			{
 				if(idx==TELX*(TELY-1))
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==(TELX*TELY)-1)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 			}	
 else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 			{
 				if(idx%TELX==0)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if((idx+1)%TELX==0)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));					//0<x<L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));					//0<x<L
 				
 				else{
 				if(FLAG[idx+1]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx-1]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx+TELX]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx-TELX]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));				 //x=L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));				 //x=L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
 				}
 			}
 
