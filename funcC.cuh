@@ -110,7 +110,14 @@ void cond_inicial(float ***QA, bool **FLAG)//,float ***QG, float ***QD, float **
 {
 for(int i=0;i<TELX;i++){
 	for(int j=0;j<TELX;j++){
-	if((pow((i-TELX/2),2)+pow((j-TELY/2),2))<=(R*R))
+	if(j<TELX/2&&j>TELX/2-(l/2)&&i>TELX/2-(l/2)&&i<TELX/2+(l/2)){
+	QA[0][i][j]=0.0;
+	FLAG[i][j]=false;}
+	}
+}
+for(int j=TELX/2;j<TELX;j++){
+	for(int i=0;i<TELX;i++){
+	if((pow((i-TELX/2),2)+pow((j-(TELY/2)+(R-h)),2))<=(R*R))
 	QA[0][i][j]=SOLIDO;
 	}
 }
@@ -218,11 +225,11 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy)
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {
-	/*
+	
 	if(FLAG[idx]==false){
 	P[idx+TELX*TELY]=P[idx];
 	}
-	else{*/
+	else{
 	if(P[idx-1]==P[idx+1]&&P[idx+TELX]==P[idx-TELX])	
 	P[idx+TELX*TELY]=P[idx];
 	else{
@@ -256,7 +263,7 @@ __global__ void P1(bool *FLAG, float *P, float *u, float dx, float dy)
 
 		//printf("P[5][5]=%f P[30][30]=%f\n", P[5 + 5 * TELX], P[30 + 30 * TELX]);
 		//printf("P1[5][5]=%f P1[30][30]=%f\n", P[5 + 5 * TELX + TELX*TELY], P[30 + 30 * TELX + TELX*TELY]);
-	//}
+	}
 	}
 	}
 }
@@ -292,11 +299,6 @@ k[idx]=1.0/(-0.5*((Pxxf*powf(Pyf,2) + Pyyf*powf(Pxf,2) - 2.0*Pxf*Pyf*Pxyf)  /(po
 }
 }
 
-
-
-
-
-
 __global__ void Temp(bool *FLAG, float *u, float *X, float *P,float *delta, float Fox, float Foy)
 {
 float m=0;
@@ -305,15 +307,12 @@ float m=0;
 	int index = blockIdx.x*blockDim.x+threadIdx.x;
 	int stride = blockDim.x*gridDim.x;
 	for (int idx = index; idx < TELX*TELY; idx += stride) {	
-
-	/*if(FLAG[idx]==false){
-	X[idx+TELX*TELY]=X[idx];
-	}*/
-	/*if(X[idx-1]==X[idx+1]&&X[idx+TELX]==X[idx-TELX])	//A NOITE TIRAR ESTE TRECHO
-	X[idx+TELX*TELY]=X[idx];
-	else{*/
+		if(FLAG[idx]==false)
+		X[idx+TELX*TELY]=X[idx];
+		else
 		X[idx+TELX*TELY]=X1(FLAG,idx,u, X, P, Fox, Foy);
 	}
+	
 	
 			__threadfence();
 			deltaf(delta,X);
@@ -331,6 +330,26 @@ float m=0;
 __device__ float X1(bool *FLAG, int idx,float *u, float *X, float *P, float Fox, float Foy)
 {
 float X1;
+//if(FLAG[idx]==false){
+
+	/*
+				if(FLAG[idx+1]==true)
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*aa*Fox+2.0*aa*Foy+1))+((X[idx]*(1.0-(1/KK))+(1/KK)*X[idx+1])*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx-1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx-TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)));//+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx-1]==true)
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*aa*Fox+2.0*aa*Foy+1))+(X[idx+1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+((X[idx]*(1.0-(1/KK))+(1/KK)*X[idx-1])*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx-TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)));//+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx+TELX]==true)
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*aa*Fox+2.0*aa*Foy+1))+(X[idx-1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+((X[idx]*(1.0-(1/KK))+(1/KK)*X[idx+TELX])*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx-TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)));//+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				else if(FLAG[idx-TELX]==true)
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+				X1=(u[idx]/(2.0*aa*Fox+2.0*aa*Foy+1))+(X[idx-1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)))+((X[idx]*(1.0-(1/KK))+(1/KK)*X[idx-TELX])*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)));//+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+				else
+				X1=(u[idx]/(2.0*aa*Fox+2.0*aa*Foy+1))+(X[idx-1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+1]*(aa*Fox/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx-TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)))+(X[idx+TELX]*(aa*Foy/(2.0*aa*Fox+2.0*aa*Foy+1)));//+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+		*/
+		//}
+		//else{
 /*
 	if(idx==0) //inferior esquerdo
 		X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.0*Fox+2.0*Foy+1));
@@ -356,49 +375,53 @@ return X1;*/
 if(idx>=0&&idx<TELX)//linha de baixo j==0
 			{
 				if(idx==0) //idx%TELX==0
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==TELX-1)//(idx+1)%TELX==0
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 			}	
 
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)//linha de cima j==TELY-1
 			{
 				if(idx==TELX*(TELY-1))
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if(idx==(TELX*TELY)-1)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 			}	
 else//(1<=j<=tely-2)	// 1<=y<=tely-2  meio
 			{
 				if(idx%TELX==0)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				
 				else if((idx+1)%TELX==0)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));					//0<x<L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));					//0<x<L
 				
 				else{
 				if(FLAG[idx+1]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+((X[idx]*(1.0-KK)+KK*X[idx+1])*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx-1]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+((X[idx]*(1.0-KK)+KK*X[idx-1])*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx+TELX]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+((X[idx]*(1.0-KK)+KK*X[idx+TELX])*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));
 				else if(FLAG[idx-TELX]==false)
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+				//X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+((X[idx]*(1.0-KK)+KK*X[idx-TELX])*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
 				else
-				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
+				X1=(u[idx]/(2.0*Fox+2.0*Foy+1))+(X[idx-1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx+1]*(Fox/(2.0*Fox+2.0*Foy+1)))+(X[idx-TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(X[idx+TELX]*(Foy/(2.0*Fox+2.0*Foy+1)))+(0.5)*((P[idx+TELX*TELY]-P[idx])/(2.2*dt+1));//(2.0*Fox+2.0*Foy+1));				 //x=L
 				}
 			}
-
+//}
 return X1;
 }
 
@@ -428,6 +451,7 @@ return E;
 __device__ float Px(bool *FLAG, float *P, int idx, float dx)
 {
 float Px;
+float Fic=(1/TAN)*abs(P[idx+TELX]-P[idx-TELX]);
 
 if(idx%TELX==0)
 Px=(P[idx+1]-P[idx+1])/(2.0*dx);
@@ -435,9 +459,9 @@ else if((idx+1)%TELX==0)
 Px=(P[idx-1]-P[idx-1])/(2.0*dx);
 else{
 	if(FLAG[idx+1]==false)
-	Px=(P[idx-1]-P[idx-1])/(2.0*dx);
+	Px=(P[idx-1]-P[idx-1]+Fic)/(2.0*dx);
 	else if(FLAG[idx-1]==false)//POTENCIALMENTE PERIGOSO, COMO PRETENDO USAR SOMENTE UM RETANGULO NO MEIO NAO DEVE DAR PROBLEMA
-	Px=(P[idx+1]-P[idx+1])/(2.0*dx);
+	Px=(P[idx+1]-P[idx+1]+Fic)/(2.0*dx);
 	else
 	Px=(P[idx+1]-P[idx-1])/(2.0*dx);
 	}
@@ -447,16 +471,16 @@ return Px;
 __device__ float Py(bool *FLAG, float *P, int idx, float dy)
 {
 float Py;
-
+float Fic=(1/TAN)*abs(P[idx+1]-P[idx-1]);
 if(idx>=0&&idx<TELX)
 Py=(P[idx+TELX]-P[idx+TELX])/(2.0*dy);
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
 Py=(P[idx-TELX]-P[idx-TELX])/(2.0*dy);
 else{
 	if(FLAG[idx+TELX]==false)
-	Py=(P[idx-TELX]-P[idx-TELX])/(2.0*dy);
+	Py=(P[idx-TELX]-P[idx-TELX]+Fic)/(2.0*dy);
 	else if(FLAG[idx-TELX]==false)
-	Py=(P[idx+TELX]-P[idx+TELX])/(2.0*dy);
+	Py=(P[idx+TELX]-P[idx+TELX]+Fic)/(2.0*dy);
 	else
 	Py=(P[idx+TELX]-P[idx-TELX])/(2.0*dy);
 	}
@@ -467,15 +491,16 @@ return Py;
 __device__ float Pxx(bool *FLAG, float *P, int idx, float dx)
 {
 float Pxx;
+float Fic=(1/TAN)*abs(P[idx+TELX]-P[idx-TELX]);
 if(idx%TELX==0)
 Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx);
 else if((idx+1)%TELX==0)
 Pxx=(P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx);
 else{
 	if(FLAG[idx+1]==false)
-	Pxx=(P[idx-1]-2.0*P[idx]+P[idx-1])/(dx*dx);
+	Pxx=(P[idx-1]-2.0*P[idx]+P[idx-1]+Fic)/(dx*dx);
 	else if(FLAG[idx-1]==false)
-	Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1])/(dx*dx);
+	Pxx=(P[idx+1]-2.0*P[idx]+P[idx+1]+Fic)/(dx*dx);
 	else
 	Pxx=(P[idx+1]-2.0*P[idx]+P[idx-1])/(dx*dx);
 	}
@@ -484,15 +509,16 @@ return Pxx;
 __device__ float Pyy(bool *FLAG, float *P, int idx, float dy)
 {
 float Pyy;
+float Fic=(1/TAN)*abs(P[idx+1]-P[idx-1]);
 if(idx>=0&&idx<TELX)
 Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy);
 else if(idx>=TELX*(TELY-1)&&idx<TELX*TELY)
 Pyy=(P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
 else{
 	if(FLAG[idx+TELX]==false)
-	Pyy=(P[idx-TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
+	Pyy=(P[idx-TELX]-2.0*P[idx]+P[idx-TELX]+Fic)/(dy*dy);
 	else if(FLAG[idx-TELX]==false)
-	Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX])/(dy*dy);
+	Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx+TELX]+Fic)/(dy*dy);
 	else
 	Pyy=(P[idx+TELX]-2.0*P[idx]+P[idx-TELX])/(dy*dy);
 	}
@@ -506,7 +532,8 @@ float DireitoCima;
 float EsquerdoCima;
 float DireitoBaixo;
 float EsquerdoBaixo;
-
+float Fic1=(1/TAN)*abs(P[idx+1]-P[idx-1]);
+float Fic2=(1/TAN)*abs(P[idx+TELX]-P[idx-TELX]);
 
 
 if (idx>=0&&idx<TELX){
@@ -534,29 +561,29 @@ if (idx>=0&&idx<TELX){
 			Pxy=(P[idx-1+TELX]-P[idx-1+TELX]-P[idx-1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 		else{
 	if(FLAG[idx+1]==false){
-	DireitoCima=P[idx-1+TELX];
-	DireitoBaixo=P[idx-1-TELX];}
+	DireitoCima=P[idx-1+TELX]+Fic2;
+	DireitoBaixo=P[idx-1-TELX]+Fic2;}
 	else{
 	DireitoCima=P[idx+1+TELX];
 	DireitoBaixo=P[idx+1-TELX];}
 
 	if(FLAG[idx-1]==false){
-	EsquerdoCima=P[idx+1+TELX];
-	EsquerdoBaixo=P[idx+1-TELX];}
+	EsquerdoCima=P[idx+1+TELX]+Fic2;
+	EsquerdoBaixo=P[idx+1-TELX]+Fic2;}
 	else{
 	EsquerdoCima=P[idx-1+TELX];
 	EsquerdoBaixo=P[idx-1-TELX];}
 
 	if(FLAG[idx+TELX]==false){
-	DireitoCima=P[idx+1-TELX];
-	EsquerdoCima=P[idx-1-TELX];}
+	DireitoCima=P[idx+1-TELX]+Fic1;
+	EsquerdoCima=P[idx-1-TELX]+Fic1;}
 	else{
 	DireitoCima=P[idx+1+TELX];
 	EsquerdoCima=P[idx-1+TELX];}
 
 	if(FLAG[idx-TELX]==false){
-	DireitoBaixo=P[idx+1+TELX];
-	EsquerdoBaixo=P[idx-1+TELX];}
+	DireitoBaixo=P[idx+1+TELX]+Fic1;
+	EsquerdoBaixo=P[idx-1+TELX]+Fic1;}
 	else{
 	DireitoBaixo=P[idx+1-TELX];
 	EsquerdoBaixo=P[idx-1-TELX];}
@@ -570,10 +597,13 @@ if (idx>=0&&idx<TELX){
 __device__ float Pyx(bool *FLAG, float *P, int idx, float dx, float dy)
 {
 	float Pxy;
-			float DireitoCima;
+	float DireitoCima;
 	float EsquerdoCima;
 	float DireitoBaixo;
 	float EsquerdoBaixo;
+	float Fic1=(1/TAN)*abs(P[idx+1]-P[idx-1]);
+	float Fic2=(1/TAN)*abs(P[idx+TELX]-P[idx-TELX]);
+
 	/*if(idx==0) //inferior esquerdo
 	Pxy=(P[idx+1+TELX]-P[idx+1+TELX]-P[idx+1+TELX]+P[idx+1+TELX])/(4.0*dx*dy);	
 	else if(idx==TELX-1)//inferior direito
@@ -617,28 +647,28 @@ if (idx>=0&&idx<TELX){
 			//Pxy=(P[idx+1+TELX]-P[idx-1+TELX]-P[idx+1-TELX]+P[idx-1-TELX])/(4.0*dx*dy);
 	
 	if(FLAG[idx+1]==false){
-	DireitoCima=P[idx-1+TELX];
-	DireitoBaixo=P[idx-1-TELX];}
+	DireitoCima=P[idx-1+TELX]+Fic2;
+	DireitoBaixo=P[idx-1-TELX]+Fic2;}
 	else{
 	DireitoCima=P[idx+1+TELX];
 	DireitoBaixo=P[idx+1-TELX];}
 	if(FLAG[idx-1]==false){
-	EsquerdoCima=P[idx+1+TELX];
-	EsquerdoBaixo=P[idx+1-TELX];}
+	EsquerdoCima=P[idx+1+TELX]+Fic2;
+	EsquerdoBaixo=P[idx+1-TELX]+Fic2;}
 	else{
 	EsquerdoCima=P[idx-1+TELX];
 	EsquerdoBaixo=P[idx-1-TELX];}
 
 	if(FLAG[idx+TELX]==false){
-	DireitoCima=P[idx+1-TELX];
-	EsquerdoCima=P[idx-1-TELX];}
+	DireitoCima=P[idx+1-TELX]+Fic1;
+	EsquerdoCima=P[idx-1-TELX]+Fic1;}
 	else{
 	DireitoCima=P[idx+1+TELX];
 	EsquerdoCima=P[idx-1+TELX];}
 
 	if(FLAG[idx-TELX]==false){
-	DireitoBaixo=P[idx+1+TELX];
-	EsquerdoBaixo=P[idx-1+TELX];}
+	DireitoBaixo=P[idx+1+TELX]+Fic1;
+	EsquerdoBaixo=P[idx-1+TELX]+Fic1;}
 	else{
 	DireitoBaixo=P[idx+1-TELX];
 	EsquerdoBaixo=P[idx-1-TELX];}

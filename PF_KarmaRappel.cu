@@ -116,20 +116,28 @@ int main(void)
 //printf("E0/d0=%f\n",E0*(lambda/a1*E0));
 	
 	FILE *arqI;
+	FILE *arqI45;
 	FILE *arqP;
 	FILE *arqT;
 	//FILE *arqR;
 	FILE *arq3P;
+	FILE *arq3P45;
 	FILE *arq3T;
+	FILE *arq3T45;
 	FILE *arq3R;
+	FILE *arq3R45;
 	
 	
 printf("\ntelt=%d\n",telt);
 
 arqI=fopen("karma_perfil_pos","w");//para binário "wb"
+arqI45=fopen("karma_perfil_pos45","w");//para binário "wb"
 arq3P=fopen("karma_perfil_P","w");//para binário "wb"
+arq3P45=fopen("karma_perfil_P45","w");//para binário "wb"
 arq3T=fopen("karma_perfil_T","w");//para binário "wb"
+arq3T45=fopen("karma_perfil_T45","w");//para binário "wb"
 arq3R=fopen("karma_perfil_R","w");//para binário "wb"
+arq3R45=fopen("karma_perfil_R45","w");//para binário "wb"
 arqP=fopen("Karma","wb");
 arqT=fopen("KarmaT","wb");
 //arqR=fopen("KarmaR","wb");
@@ -187,7 +195,7 @@ cudaDeviceSynchronize();
 */
 
 //IMPRIMIR 		
-	if (tempo%5000==0){
+	if (tempo%10000==0){
 		printf("%d, ",tempo);
 		for(int i=0;i<TELX;i++){
 		cudaMemcpy(kc+(i*TELX), k[i], TELY*sizeof(float), cudaMemcpyHostToDevice);
@@ -218,14 +226,17 @@ cudaDeviceSynchronize();
 		fprintf(arq3P,"phi:t=%.8f\n",(tempo*dt));
 		fprintf(arq3T,"T:t=%.8f\n",(tempo*dt));
 		//fprintf(arq3R,"R:t=%.8f\n",(tempo*dt));
-	for(int j=TELX/2;j<TELX-1;j++){
+	for(int j=0;j<TELX-1;j++){
 	//for(int j=0;j<TELX-1;j++){
 		fprintf(arq3P,"%f %f\n",j*dx, P[1][TELX/2][j]); //PERFIL DA VARIAVEL DE FASE
 		//fprintf(arq3P,"%f %f\n",j*dx, P[1][0][j]); //PERFIL DA VARIAVEL DE FASE
 		fprintf(arq3T,"%f %f\n",j*dx, X[1][TELX/2][j]); //PERFIL DE TEMPERATURA
 		//fprintf(arq3T,"%f %f\n",j*dx, X[1][0][j]); //PERFIL DE TEMPERATURA
-		
-		
+		}
+		fprintf(arq3P,"\n\n");
+		fprintf(arq3T,"\n\n");
+	
+	for(int j=TELX/2;j<TELX-1;j++){	
 		if (P[1][TELX/2][j]*P[1][TELX/2][j+1]<0){
 		//if (P[1][0][j]*P[1][0][j+1]<0){
 			jota=(j+1)-((P[1][TELX/2][j+1]*dx)/(P[1][TELX/2][j+1]-P[1][TELX/2][j]));
@@ -233,10 +244,40 @@ cudaDeviceSynchronize();
 			fprintf(arq3R,"%f %f\n",(tempo*dt), k[TELX/2][j]); //PERFIL DE CURVATURA
 			//fprintf(arq3R,"%f %f\n",(tempo*dt), k[0][j]); //PERFIL DE CURVATURA
 			fprintf(arqI,"%f %f\n",tempo*dt,jota*dx); //POSIÇÃO DA INTERFACE
+
 		}
 		}
-		fprintf(arq3P,"\n\n");
-		fprintf(arq3T,"\n\n");
+		
+//MESMA COISA SÓ QUE A 45GRAUS
+//IMPRESSÃO DO PERFIL DE VARIÁVEL DE FASE, TEMPERATURA, CURVATURA E VELOCIDADE NA VERTICAL
+		fprintf(arq3P45,"phi:t=%.8f\n",(tempo*dt));
+		fprintf(arq3T45,"T:t=%.8f\n",(tempo*dt));
+		//fprintf(arq3R,"R:t=%.8f\n",(tempo*dt));
+	for(int i=0;i<TELX-1;i++){
+	for(int j=0;j<TELX-1;j++){
+	//for(int j=0;j<TELX-1;j++){
+		fprintf(arq3P45,"%f %f\n",j*dx, P[1][i][j]); //PERFIL DA VARIAVEL DE FASE
+		//fprintf(arq3P,"%f %f\n",j*dx, P[1][0][j]); //PERFIL DA VARIAVEL DE FASE
+		fprintf(arq3T45,"%f %f\n",j*dx, X[1][i][j]); //PERFIL DE TEMPERATURA
+		//fprintf(arq3T,"%f %f\n",j*dx, X[1][0][j]); //PERFIL DE TEMPERATURA
+		}
+		}
+		fprintf(arq3P45,"\n\n");
+		fprintf(arq3T45,"\n\n");
+	
+	for(int i=TELX/2;i<TELX-1;i++){
+	for(int j=TELX/2;j<TELX-1;j++){
+		if (P[1][i][j]*P[1][i][j+1]<0){
+		//if (P[1][0][j]*P[1][0][j+1]<0){
+			jota=(j+1)-((P[1][i+1][j+1]*dx)/(P[1][i+1][j+1]-P[1][i][j]));
+			//jota=(j+1)-((P[1][0][j+1]*dx)/(P[1][0][j+1]-P[1][0][j]));
+			fprintf(arq3R45,"%f %f\n",(tempo*dt), k[i][j]); //PERFIL DE CURVATURA
+			//fprintf(arq3R,"%f %f\n",(tempo*dt), k[0][j]); //PERFIL DE CURVATURA
+			fprintf(arqI45,"%f %f\n",tempo*dt,jota*dx); //POSIÇÃO DA INTERFACE
+		}
+		}
+		}
+
 		
 		printf("ok");
 //IMPRESSÃO DO CAMPO DE FASES
@@ -292,12 +333,16 @@ printf("E0/d0=%f\n",(D/(0.8839*0.6267)));
 //FECHAR E ARQUIVOS E LIBERAR MEMÓRIA
 
 fclose(arqI);
+fclose(arqI45);
 fclose(arqP);
 fclose(arqT);
 //fclose(arqR);
 fclose(arq3P);
+fclose(arq3P45);
 fclose(arq3T);
+fclose(arq3T45);
 fclose(arq3R);
+fclose(arq3R45);
 
 for(int t=0;t<2;t++){
 	for(int i=0;i<TELX;i++){
